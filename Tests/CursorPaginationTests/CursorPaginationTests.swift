@@ -12,7 +12,6 @@ import Vapor
 import Fluent
 import HTTP
 import CodableExtended
-//import Pagination
 import CursorPagination
 
 
@@ -26,7 +25,6 @@ class PaginationTests: FluentTestAppTestCase {
 	//MARK: Linux Testing
 	static var allTests = [
 		("testLinuxTestSuiteIncludesAllTests", testLinuxTestSuiteIncludesAllTests),
-//		("testOffsetPagination", testOffsetPagination),
 		("testComplexSortPagination", testComplexSortPagination),
 		("testIdSortPagination", testIdSortPagination),
 		("testBoolSortPagination", testBoolSortPagination),
@@ -40,7 +38,7 @@ class PaginationTests: FluentTestAppTestCase {
 	}
 
 
-	// Dtermines if test runs with various sizes of data. For most development purposes this can be false. This will minimize the time
+	// Determines if test runs with various sizes of data. For most development purposes this can be false. This will minimize the time
 	// needed to seed data and make the tests run much faster. Occasionally set to true when larger implementation changes are made, or before pushing
 	// to repo. This will test various size data sets, testing against various edge cases. Much slower due to required reseeding of data between tests.
 	var testAllEdgeCases = false
@@ -81,23 +79,6 @@ class PaginationTests: FluentTestAppTestCase {
 			PaginationTests.persistApplicationBetweenTests = true
 		}
 	}
-
-//	func testOffsetPagination() throws{
-//		let idSort = QuerySort(field: "id", direction: .ascending)
-//		let totalCount = 20
-//		try seedModels(totalCount)
-//		let total: Int = try ExampleModel.query(on: request).count().wait()
-//		var fetched: [ExampleModel] = []
-//		var pageNumber: Int = 1
-//		while fetched.count != total{
-//			let page: Page<ExampleModel> = try ExampleModel.query(on: request).paginate(page: pageNumber, per: pageLimit, [idSort]).wait()
-//			fetched.append(contentsOf: page.data)
-//			pageNumber += 1
-//			testLog(page.response())
-//		}
-//
-//		XCTAssertEqual(Array(1...totalCount), fetched.map({$0.id!}).sorted())
-//	}
 
 
 	func testComplexSortPagination() throws{
