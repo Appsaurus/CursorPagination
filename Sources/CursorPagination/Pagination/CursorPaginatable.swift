@@ -8,22 +8,39 @@
 import Foundation
 import Fluent
 import Vapor
-import Pagination
+//import Pagination
 
-public protocol CursorPaginatable: Pagination.Paginatable{}
+public protocol CursorPaginatable: Model where Self.Database: QuerySupporting {
+	static var defaultPageSize: Int { get }
+	static var maxPageSize: Int? { get }
+	static var defaultPageSorts: [QuerySort] { get }
+}
 
 extension CursorPaginatable{
 	public static var defaultPageGroups: [QueryGroupBy] {
 		return []
 	}
-	static public var defaultPageSorts: [QuerySort] {
+	public static var defaultPageSorts: [QuerySort] {
 		let field = (try? idKey.makeQueryField()) ?? QueryField(name: "id")
 		return [QuerySort(field: field, direction: .ascending)]
 	}
-	static public var defaultPageSize: Int {
-		return 20
+	public static var defaultPageSize: Int {
+		return 10
+	}
+
+	public static var maxPageSize: Int? {
+		return nil
 	}
 }
+
+extension CursorPaginatable where Self: Timestampable {
+	public static var defaultPageSorts: [QuerySort] {
+		return [
+			QuerySort(field:  QueryField(entity: Self.entity, name: "createdAt"), direction: .descending)
+		]
+	}
+}
+
 
 extension CursorPaginatable {
 

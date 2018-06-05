@@ -342,25 +342,23 @@ extension QueryBuilder{
 
 
 
-// Represents a page of results, offset by an id value
-public struct CursorPage<E: CursorPaginatable>: Content {
-	public let nextPageCursor: String?
-	public let data: [E]
-	public let size: Int
-	public let total: Int
+
+
+extension QuerySort{
+	public init<Root: Model, Value, KP: KeyPath<Root, Value>>(_ keyPath: KP, _ direction: QuerySortDirection = .ascending) throws{
+		self.init(field: try keyPath.makeQueryField(), direction: direction)
+	}
 }
 
-public struct CursorPaginationSort<M: Model>{
-	public let querySort: QuerySort
-	public let keyPath:  PartialKeyPath<M>
-	public init<T>(_ field: KeyPath<M, T>, _ direction: QuerySortDirection = .ascending) throws{
-		querySort = try QuerySort(
-			field: field.makeQueryField(),
-			direction: direction
-		)
-		keyPath = field
+extension KeyPath where Root: Model {
+	public func ascending() throws -> QuerySort {
+		return try sort(.ascending)
 	}
-	public static func sort<M: Model, T>(_ field: KeyPath<M, T>, _ direction: QuerySortDirection = .ascending) throws -> CursorPaginationSort<M>{
-		return try CursorPaginationSort<M>(field, direction)
+
+	public func descending() throws -> QuerySort {
+		return try sort(.descending)
+	}
+	public func sort(_ direction: QuerySortDirection = .ascending) throws -> QuerySort {
+		return try QuerySort(self, direction)
 	}
 }

@@ -12,7 +12,7 @@ import Vapor
 import Fluent
 import HTTP
 import CodableExtended
-import Pagination
+//import Pagination
 import CursorPagination
 
 
@@ -26,7 +26,7 @@ class PaginationTests: FluentTestAppTestCase {
 	//MARK: Linux Testing
 	static var allTests = [
 		("testLinuxTestSuiteIncludesAllTests", testLinuxTestSuiteIncludesAllTests),
-		("testOffsetPagination", testOffsetPagination),
+//		("testOffsetPagination", testOffsetPagination),
 		("testComplexSortPagination", testComplexSortPagination),
 		("testIdSortPagination", testIdSortPagination),
 		("testBoolSortPagination", testBoolSortPagination),
@@ -82,22 +82,22 @@ class PaginationTests: FluentTestAppTestCase {
 		}
 	}
 
-	func testOffsetPagination() throws{
-		let idSort = QuerySort(field: "id", direction: .ascending)
-		let totalCount = 20
-		try seedModels(totalCount)
-		let total: Int = try ExampleModel.query(on: request).count().wait()
-		var fetched: [ExampleModel] = []
-		var pageNumber: Int = 1
-		while fetched.count != total{
-			let page: Page<ExampleModel> = try ExampleModel.query(on: request).paginate(page: pageNumber, per: pageLimit, [idSort]).wait()
-			fetched.append(contentsOf: page.data)
-			pageNumber += 1
-			testLog(page.response())
-		}
-
-		XCTAssertEqual(Array(1...totalCount), fetched.map({$0.id!}).sorted())
-	}
+//	func testOffsetPagination() throws{
+//		let idSort = QuerySort(field: "id", direction: .ascending)
+//		let totalCount = 20
+//		try seedModels(totalCount)
+//		let total: Int = try ExampleModel.query(on: request).count().wait()
+//		var fetched: [ExampleModel] = []
+//		var pageNumber: Int = 1
+//		while fetched.count != total{
+//			let page: Page<ExampleModel> = try ExampleModel.query(on: request).paginate(page: pageNumber, per: pageLimit, [idSort]).wait()
+//			fetched.append(contentsOf: page.data)
+//			pageNumber += 1
+//			testLog(page.response())
+//		}
+//
+//		XCTAssertEqual(Array(1...totalCount), fetched.map({$0.id!}).sorted())
+//	}
 
 
 	func testComplexSortPagination() throws{
