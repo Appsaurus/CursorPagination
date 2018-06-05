@@ -7,19 +7,13 @@
 
 import Foundation
 import XCTest
-@testable import Vapor
-import HTTP
-import Fluent
-import VaporTestUtils
 import FluentTestApp
+import Vapor
+import Fluent
 import HTTP
-import FluentTestUtils
-//import ServasaurusExampleApp
-//import DinoDNA
-import Random
+import CodableExtended
 import Pagination
-@testable import CursorPagination
-//import SQLite
+import CursorPagination
 
 
 extension ExampleModel: CursorPaginatable{}
@@ -38,17 +32,22 @@ class PaginationTests: FluentTestAppTestCase {
 		("testBoolSortPagination", testBoolSortPagination),
 		("testStringSortPagination", testStringSortPagination),
 		("testOptionalStringSortPagination", testOptionalStringSortPagination),
-		("testDateSortPagination", testDateSortPagination),
-		]
+		("testDateSortPagination", testDateSortPagination)
+	]
 
 	func testLinuxTestSuiteIncludesAllTests(){
 		assertLinuxTestCoverage(tests: type(of: self).allTests)
 	}
 
 
-	var pageLimit = 20
-	var seedCounts = [20]// [0, 1, 5, 10, 15, 20, 35, 40]
+	// Dtermines if test runs with various sizes of data. For most development purposes this can be false. This will minimize the time
+	// needed to seed data and make the tests run much faster. Occasionally set to true when larger implementation changes are made, or before pushing
+	// to repo. This will test various size data sets, testing against various edge cases. Much slower due to required reseeding of data between tests.
+	var testAllEdgeCases = false
 
+	lazy var seedCounts = testAllEdgeCases ? [0, 1, 5, 10, 15, 20, 21, 40] : [40]
+	var pageLimit = 20
+	
 	//	let idSort = try! CursorPaginationSort(ExampleModel.idKey)
 	//	let descendingIdSort = try! CursorPaginationSort(ExampleModel.idKey, .descending)
 	//	let dateSort = try!CursorPaginationSort(\ExampleModel.dateField, .ascending)
@@ -63,7 +62,6 @@ class PaginationTests: FluentTestAppTestCase {
 
 	let idSort = QuerySort(field: "id", direction: .ascending)
 	let descendingIdSort = QuerySort(field: "id", direction: .descending)
-//	let descendingIdSort = try! QuerySort(ExampleModel.idKey, .descending)
 	let dateSort = QuerySort(field: "dateField", direction: .ascending)
 	let descendingDateSort = QuerySort(field: "dateField", direction: .descending)
 	let boolSort = QuerySort(field: "booleanField", direction: .ascending)
@@ -77,6 +75,11 @@ class PaginationTests: FluentTestAppTestCase {
 
 	override func setupOnce() throws {
 		try super.setupOnce()
+		//If only testing one seed size, no need to reseed for each test.
+		if !testAllEdgeCases{
+			try seedModels(seedCounts.first!)
+			PaginationTests.persistApplicationBetweenTests = true
+		}
 	}
 
 	func testOffsetPagination() throws{
@@ -167,7 +170,7 @@ class PaginationTests: FluentTestAppTestCase {
 		try runTest(with: [self.descendingOptionalStringSort], orderTest: { (previousModel, model) -> Bool in
 			return optionalStringOrderTest(order: .descending, model: model, previousModel: previousModel)
 		})
-//		let all: [ExampleModel] = try ExampleModel.query(on: request).all().wait()
+		//		let all: [ExampleModel] = try ExampleModel.query(on: request).all().wait()
 		//		debugPrint(models: all)
 	}
 
@@ -215,7 +218,7 @@ class PaginationTests: FluentTestAppTestCase {
 				let page: CursorPage<ExampleModel> = try pageFetcher(request, cursor, pageLimit)
 				cursor = page.nextPageCursor
 				fetched.append(contentsOf: page.data)
-				//				print(try page.toJsonDictionary().prettyPrinted)
+				try page.toAnyDictionary().printPretty()
 				//			debugPrint(models: page.data)
 				if cursor == nil { break }
 			}
@@ -244,10 +247,10 @@ class PaginationTests: FluentTestAppTestCase {
 				XCTFail("Unexpected results with ids \(unexpected)")
 			}
 
-//			let duplicates = sortedResultIds.duplicates
-//			if duplicates.count > 0{
-//				XCTFail("Unexpected duplicates with ids \(duplicates)")
-//			}
+			let duplicates = sortedResultIds.duplicates
+			if duplicates.count > 0{
+				XCTFail("Unexpected duplicates with ids \(duplicates)")
+			}
 		}
 	}
 
@@ -264,28 +267,26 @@ class PaginationTests: FluentTestAppTestCase {
 		}, orderTest: orderTest)
 	}
 
-	private func debugPrint(models: [ExampleModel]){
-		models.forEach { (item) in
-
-			print("\nId: \(item.id!)" +
-				"\nDate: " + item.dateField.string_iso8601 //+
-				//								"\nCreated at: " + item.createdAt!.string_iso8601 +
-				//								"\nString: " + item.stringField +
-				//				"\nOptionalString: " + String(describing: item.optionalStringField) +
-				//								"\nBool: \(item.booleanField)\n"
-			)
+	private func debugPrint(models: [ExampleModel]) throws{
+		try models.forEach { (item) in
+			try item.toAnyDictionary().printPretty()
 		}
 	}
 
 	@discardableResult
 	func seedModels(_ count: Int = 30) throws -> [ExampleModel] {
+		var models = try ExampleModel.query(on: request).all().wait()
+		let total: Int = models.count
+		guard total != count else{
+			return models //Seed is alraedy setup for this seed size.
+		}
+		//Otherwise we need to reseed
 		try! ExampleModel.query(on: request).all().wait().delete(on: request).wait()
 		guard count > 0 else { return [] }
 		let conn = request
-		//		var models: [ExampleModel] = []
 		let ids: [Int] = Array(1...count)
 
-		let models = try ExampleModel.findOrCreateModels(ids: ids, on: conn)
+		models = try ExampleModel.findOrCreateModels(ids: ids, on: conn)
 		for model in models{
 			let sibling: ExampleSiblingModel = try ExampleSiblingModel.findOrCreateModel(id: model.id!, on: conn)
 			let _ = try model.siblings.attach(sibling, on: conn).wait()
@@ -296,7 +297,6 @@ class PaginationTests: FluentTestAppTestCase {
 				child.optionalParentModelId = model.id!
 				let _ = try child.save(on: conn).wait()
 			}
-			//			models.append(model)
 		}
 		return models
 	}

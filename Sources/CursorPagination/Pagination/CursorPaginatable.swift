@@ -27,7 +27,7 @@ extension CursorPaginatable{
 
 extension CursorPaginatable {
 
-	/// Paginates a query on the given sorts using opqaue cursors. More
+	/// Paginates a query using opqaue cursors.
 	///
 	/// - Parameters:
 	///   - cursor: A cursor marking the start of the next page of results. If none is supplied, it is assumed that the query should start from the begining of the results, or the first page.
@@ -38,7 +38,7 @@ extension CursorPaginatable {
 								cursor: String?,
 								count: Int = defaultPageSize,
 								sortFields: [CursorPaginationSort<Self>]) throws -> Future<CursorPage<Self>> {
-		return try query(on: conn).paginate(on: conn, cursor: cursor, count: count, sortFields: sortFields)
+		return try query(on: conn).paginate(cursor: cursor, count: count, sortFields: sortFields)
 	}
 
 	/// Paginates a query on the given sorts using opqaue cursors. More
@@ -52,21 +52,19 @@ extension CursorPaginatable {
 								cursor: String?,
 								count: Int = defaultPageSize,
 								sorts: [QuerySort] = defaultPageSorts) throws -> Future<CursorPage<Self>> {
-		return try query(on: conn).paginate(on: conn, cursor: cursor, count: count, sorts: sorts)
+		return try query(on: conn).paginate(cursor: cursor, count: count, sorts: sorts)
 
 	}
 
-	public static func paginate(for req: Request,
-								on conn: DatabaseConnectable,
+	public static func paginate(request: Request,
 								cursorBuilder: @escaping CursorBuilder<Self>,
 								sorts: [QuerySort] = []) throws -> Future<CursorPage<Self>> {
-		let params = req.cursorPaginationParameters()
+		let params = request.cursorPaginationParameters()
 
-		return try self.query(on: conn).paginate(on: conn,
-												 cursor: params?.cursor,
-												 cursorBuilder: cursorBuilder,
-												 count: params?.limit ?? Self.defaultPageSize,
-												 sorts: sorts)
+		return try self.query(on: request).paginate(cursor: params?.cursor,
+													cursorBuilder: cursorBuilder,
+													count: params?.limit ?? Self.defaultPageSize,
+													sorts: sorts)
 	}
 
 }

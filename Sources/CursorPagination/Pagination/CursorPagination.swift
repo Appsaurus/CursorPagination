@@ -48,8 +48,7 @@ public struct CursorPart{
 }
 
 extension QueryBuilder where Model: CursorPaginatable {
-	public func paginate(on conn: DatabaseConnectable,
-						 cursor: String?,
+	public func paginate(cursor: String?,
 						 cursorBuilder: @escaping CursorBuilder<Model>,
 						 count: Int = 20,
 						 sorts: [QuerySort] = []) throws -> Future<CursorPage<Model>> {
@@ -251,8 +250,7 @@ extension QueryBuilder where Model: CursorPaginatable {
 	///   - count: The page limit. Max number of items to return in one page.
 	///   - sorts: The Sorts used to order the queries results. If there is only one sort, it must have uniquely indexable value. If the last sort in the array does not sort on a uniquely indexable field, then an additional sort will be applied. It will attempt to use the Model's default sort. If the models default sort is not uniquely indexable, it will use createdDate (if Timestampable) or the model ids to break ties.
 	/// - Returns: A CursorPage<E> which contains the next page of results and a cursor for the next page if there are more results.
-	public func paginate(on conn: DatabaseConnectable,
-						 cursor: String?,
+	public func paginate(cursor: String?,
 						 count: Int = Model.defaultPageSize,
 						 sortFields: [CursorPaginationSort<Model>]) throws -> Future<CursorPage<Model>> {
 		var sortFields = sortFields
@@ -269,7 +267,7 @@ extension QueryBuilder where Model: CursorPaginatable {
 		}
 
 		let sorts: [QuerySort] = sortFields.map({ $0.querySort })
-		return try paginate(on: conn, cursor: cursor, cursorBuilder: cursorBuilder, count: count, sorts: sorts)
+		return try paginate(cursor: cursor, cursorBuilder: cursorBuilder, count: count, sorts: sorts)
 	}
 
 	public func cursorPart(forParameter name: String, withValue value: Any) -> String{
@@ -294,8 +292,7 @@ extension QueryBuilder where Model: CursorPaginatable {
 	}
 
 	//WARN: Uses reflection to generate cursor
-	public func paginate(on conn: DatabaseConnectable,
-						 cursor: String?,
+	public func paginate(cursor: String?,
 						 count: Int = Model.defaultPageSize,
 						 sorts: [QuerySort] = Model.defaultPageSorts) throws -> Future<CursorPage<Model>> {
 		var sorts: [QuerySort] = sorts
@@ -303,7 +300,7 @@ extension QueryBuilder where Model: CursorPaginatable {
 
 		let cursorBuilder: (Model) throws -> String = { (model: Model) in
 			var cursor: String = ""
-			let json: Dictionary<String, Any> = .init()//.init(model)
+			let json: Dictionary<String, Any> = try .init(model)
 			for sort in sorts{
 				let fieldName = sort.field.name
 				let value = json[fieldName] as Any
@@ -313,17 +310,15 @@ extension QueryBuilder where Model: CursorPaginatable {
 			return cursor
 		}
 
-		return try paginate(on: conn, cursor: cursor, cursorBuilder: cursorBuilder, count: count, sorts: sorts)
+		return try paginate(cursor: cursor, cursorBuilder: cursorBuilder, count: count, sorts: sorts)
 	}
 
 	public func paginate(for req: Request,
-						 on conn: DatabaseConnectable? = nil,
 						 cursorBuilder: @escaping CursorBuilder<Model>,
 						 sorts: [QuerySort] = []) throws -> Future<CursorPage<Model>> {
 		let params = req.cursorPaginationParameters()
 
-		return try self.paginate(on: conn ?? req,
-								 cursor: params?.cursor,
+		return try self.paginate(cursor: params?.cursor,
 								 cursorBuilder: cursorBuilder,
 								 count: params?.limit ?? Model.defaultPageSize,
 								 sorts: sorts)
