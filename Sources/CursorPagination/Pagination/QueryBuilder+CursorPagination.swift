@@ -149,8 +149,7 @@ extension QueryBuilder where Model: CursorPaginatable {
 			return CursorPage(
 				nextPageCursor: nextPageCursor,
 				data: data,
-				size: count,
-				total: total
+				remaining: total - data.count
 			)
 		}
 
