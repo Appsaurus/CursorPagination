@@ -8,12 +8,37 @@
 import Foundation
 import Fluent
 import Vapor
-import RuntimeExtensions
-import Codability
-import CodableExtended
 
-
+//MARK: Main external API
 extension QueryBuilder where Model: CursorPaginatable {
+
+	/// Paginates a query on the given sorts using opqaue cursors. More
+	///
+	/// - Parameters:
+	///   - cursor: A cursor marking the start of the next page of results. If none is supplied, it is assumed that the query should start from the begining of the results, or the first page.
+	///   - count: The page limit. Max number of items to return in one page.
+	///   - sorts: The Sorts used to order the queries results. If there is only one sort, it must have uniquely indexable value. If the last sort in the array does not sort on a uniquely indexable field, then an additional sort will be applied. It will attempt to use the Model's default sort. If the models default sort is not uniquely indexable, it will use createdDate (if Timestampable) or the model ids to break ties.
+	/// - Returns: A CursorPage<E> which contains the next page of results and a cursor for the next page if there are more results.
+	public func paginate(cursor: String?,
+						 count: Int = Model.defaultPageSize,
+						 sortFields: [KeyPathSort<Model>]) throws -> Future<CursorPage<Model>> {
+		var sortFields = sortFields
+		try ensureUniqueKeyPathSort(sorts: &sortFields)
+		let cursorBuilder: (Model) throws -> String = { (model: Model) in
+			var cursor: String = ""
+			for field in sortFields{
+				let value = model[keyPath: field.keyPath]
+				let fieldName = field.querySort.field.name
+				cursor += try self.cursorPart(forParameter: fieldName, withValue: value)
+			}
+			cursor = String(cursor.dropLast())
+			return cursor
+		}
+
+		let sorts: [QuerySort] = sortFields.map({ $0.querySort })
+		return try paginate(cursor: cursor, cursorBuilder: cursorBuilder, count: count, sorts: sorts)
+	}
+
 	public func paginate(cursor: String?,
 						 cursorBuilder: @escaping CursorBuilder<Model>,
 						 count: Int = 20,
@@ -195,48 +220,20 @@ extension QueryBuilder where Model: CursorPaginatable {
 		}
 	}
 
-	public func ensureUniqueSortField(sorts: inout [AnyKeyPath]) {
-		//Use id for tiebreakers on nonunique sorts
-		//TODO: Check schema for uniqueness instead of always applying id as tiebreaker
-		if sorts.last != Model.idKey{
-			sorts.append(Model.idKey)
-		}
-	}
+//	public func ensureUniqueSortField(sorts: inout [AnyKeyPath]) {
+//		//Use id for tiebreakers on nonunique sorts
+//		//TODO: Check schema for uniqueness instead of always applying id as tiebreaker
+//		if sorts.last != Model.idKey{
+//			sorts.append(Model.idKey)
+//		}
+//	}
 
-	public func ensureUniquePaginationSort(sorts: inout [KeyPathSort<Model>]) throws {
+	public func ensureUniqueKeyPathSort(sorts: inout [KeyPathSort<Model>]) throws {
 		//Use id for tiebreakers on nonunique sorts
 		//TODO: Check schema for uniqueness instead of always applying id as tiebreaker
 		if sorts.last?.keyPath != Model.idKey{
 			sorts.append(try .sort(Model.idKey))
 		}
-	}
-
-
-	/// Paginates a query on the given sorts using opqaue cursors. More
-	///
-	/// - Parameters:
-	///   - cursor: A cursor marking the start of the next page of results. If none is supplied, it is assumed that the query should start from the begining of the results, or the first page.
-	///   - count: The page limit. Max number of items to return in one page.
-	///   - sorts: The Sorts used to order the queries results. If there is only one sort, it must have uniquely indexable value. If the last sort in the array does not sort on a uniquely indexable field, then an additional sort will be applied. It will attempt to use the Model's default sort. If the models default sort is not uniquely indexable, it will use createdDate (if Timestampable) or the model ids to break ties.
-	/// - Returns: A CursorPage<E> which contains the next page of results and a cursor for the next page if there are more results.
-	public func paginate(cursor: String?,
-						 count: Int = Model.defaultPageSize,
-						 sortFields: [KeyPathSort<Model>]) throws -> Future<CursorPage<Model>> {
-		var sortFields = sortFields
-		try ensureUniquePaginationSort(sorts: &sortFields)
-		let cursorBuilder: (Model) throws -> String = { (model: Model) in
-			var cursor: String = ""
-			for field in sortFields{
-				let value = model[keyPath: field.keyPath]
-				let fieldName = field.querySort.field.name
-				cursor += try self.cursorPart(forParameter: fieldName, withValue: value)
-			}
-			cursor = String(cursor.dropLast())
-			return cursor
-		}
-
-		let sorts: [QuerySort] = sortFields.map({ $0.querySort })
-		return try paginate(cursor: cursor, cursorBuilder: cursorBuilder, count: count, sorts: sorts)
 	}
 
 	public func cursorPart(forParameter name: String, withValue value: Any) throws -> String{
@@ -259,6 +256,12 @@ extension QueryBuilder where Model: CursorPaginatable {
 			}
 		}
 	}
+
+
+}
+
+//MARK: Anycodable/Reflection implementation (uses dict representation and KVC to build cursor)
+extension QueryBuilder where Model: CursorPaginatable {
 
 	//WARN: Uses reflection to generate cursor
 	public func paginate(cursor: String?,
@@ -305,21 +308,5 @@ fileprivate extension QueryBuilder{
 			value: value
 		)
 		return addFilter(.single(filter))
-	}
-}
-
-fileprivate extension Encodable {
-	fileprivate func encodeAsJSONData(using encoder: JSONEncoder = JSONEncoder()) throws -> Data {
-		return try encoder.encode(self)
-	}
-
-	//WARN: There is some precision lost on decimals: https://bugs.swift.org/browse/SR-7054
-	fileprivate func encodeAsJSONString(using encoder: JSONEncoder = JSONEncoder(), stringEncoding: String.Encoding = .utf8) throws -> String{
-		let jsonData = try encodeAsJSONData(using: encoder)
-		guard let jsonString = String(data: jsonData, encoding: stringEncoding) else{
-			let context = EncodingError.Context(codingPath: [], debugDescription: "Unable to convert data \(jsonData) from object \(self) to string.")
-			throw EncodingError.invalidValue(self, context)
-		}
-		return jsonString
 	}
 }

@@ -17,9 +17,7 @@ public protocol CursorPaginatable: Model where Self.Database: QuerySupporting {
 }
 
 extension CursorPaginatable{
-	public static var defaultPageGroups: [QueryGroupBy] {
-		return []
-	}
+
 	public static var defaultPageSorts: [QuerySort] {
 		let field = (try? idKey.makeQueryField()) ?? QueryField(name: "id")
 		return [QuerySort(field: field, direction: .ascending)]
