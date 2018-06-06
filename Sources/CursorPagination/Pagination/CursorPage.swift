@@ -13,8 +13,7 @@ import Vapor
 public struct CursorPage<E: CursorPaginatable>: Content {
 	public let nextPageCursor: String?
 	public let data: [E]
-	public let size: Int
-	public let total: Int
+	public let remaining: Int
 }
 
 public struct KeyPathSort<M: CursorPaginatable>{
