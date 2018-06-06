@@ -26,6 +26,7 @@ class PaginationTests: PaginationTestCase {
 		("testBoolSortPagination", testBoolSortPagination),
 		("testStringSortPagination", testStringSortPagination),
 		("testOptionalStringSortPagination", testOptionalStringSortPagination),
+		("testDoubleSortPagination", testDoubleSortPagination),
 		("testDateSortPagination", testDateSortPagination)
 	]
 
@@ -39,8 +40,8 @@ class PaginationTests: PaginationTestCase {
 	// to repo. This will test various size data sets, testing against various edge cases. Much slower due to required reseeding of data between tests.
 	var testAllEdgeCases = true
 
-	lazy var seedCounts = testAllEdgeCases ? [0, 1, 5, 10, 11, 20, 21] : [30]
-	var pageLimit = 10
+	lazy var seedCounts = testAllEdgeCases ? [0, 1, 5, 10, 11, 20, 21] : [10]
+	var pageLimit = 5
 
 	override func setupOnce() throws {
 		try super.setupOnce()
@@ -127,6 +128,16 @@ class PaginationTests: PaginationTestCase {
 
 	}
 
+	func testDoubleSortPagination() throws {
+
+		try runTest(with: [.ascending(\.doubleField)], orderTest: { (previousModel, model) -> Bool in
+			return  model.doubleField >= previousModel.doubleField
+		})
+		try runTest(with: [.descending(\.doubleField)], orderTest: { (previousModel, model) -> Bool in
+			return model.doubleField <= previousModel.doubleField
+		})
+	}
+
 
 	func testDateSortPagination() throws {
 
@@ -148,7 +159,6 @@ class PaginationTests: PaginationTestCase {
 			}
 
 			let models: [ExampleModel] = try seedModels(seedCount)
-
 			let sortedIds: [Int] = sortIds(for: models)
 			var cursor: String? = nil
 			let total: Int = try ExampleModel.query(on: request).count().wait()

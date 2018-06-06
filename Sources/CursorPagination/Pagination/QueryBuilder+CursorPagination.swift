@@ -9,6 +9,9 @@ import Foundation
 import Fluent
 import Vapor
 import RuntimeExtensions
+import Codability
+import CodableExtended
+
 
 extension QueryBuilder where Model: CursorPaginatable {
 	public func paginate(cursor: String?,
@@ -23,6 +26,7 @@ extension QueryBuilder where Model: CursorPaginatable {
 			guard let decodedCursor = cursor.fromBase64() else {
 				throw Abort(.badRequest, reason: "Expected cursor to be a base64 encoded string, received \(cursor).")
 			}
+
 			let cursorParts = decodedCursor.split(separator: ",")
 
 			guard cursorParts.count == sorts.count else{
@@ -91,11 +95,13 @@ extension QueryBuilder where Model: CursorPaginatable {
 					}
 				}
 			}
+
 		}
 
 		//Must overwrite other sorts that could break our sort order.
 		//Sorts must be set in order matching cursor.
 		q.query.sorts = sorts
+
 
 		//Additionally fetch first item of next page to generate cursor
 		let limitIncludingNextItem = count + 1
@@ -223,7 +229,7 @@ extension QueryBuilder where Model: CursorPaginatable {
 			for field in sortFields{
 				let value = model[keyPath: field.keyPath]
 				let fieldName = field.querySort.field.name
-				cursor += self.cursorPart(forParameter: fieldName, withValue: value)
+				cursor += try self.cursorPart(forParameter: fieldName, withValue: value)
 			}
 			cursor = String(cursor.dropLast())
 			return cursor
@@ -233,7 +239,7 @@ extension QueryBuilder where Model: CursorPaginatable {
 		return try paginate(cursor: cursor, cursorBuilder: cursorBuilder, count: count, sorts: sorts)
 	}
 
-	public func cursorPart(forParameter name: String, withValue value: Any) -> String{
+	public func cursorPart(forParameter name: String, withValue value: Any) throws -> String{
 		var value = value
 		switch value{
 		case let optional as Optional<Any>:
@@ -267,7 +273,7 @@ extension QueryBuilder where Model: CursorPaginatable {
 			for sort in sorts{
 				let fieldName = sort.field.name
 				let value = json[fieldName] as Any
-				cursor += self.cursorPart(forParameter: fieldName, withValue: value)
+				cursor += try self.cursorPart(forParameter: fieldName, withValue: value)
 			}
 			cursor = String(cursor.dropLast())
 			return cursor
@@ -299,5 +305,21 @@ fileprivate extension QueryBuilder{
 			value: value
 		)
 		return addFilter(.single(filter))
+	}
+}
+
+fileprivate extension Encodable {
+	fileprivate func encodeAsJSONData(using encoder: JSONEncoder = JSONEncoder()) throws -> Data {
+		return try encoder.encode(self)
+	}
+
+	//WARN: There is some precision lost on decimals: https://bugs.swift.org/browse/SR-7054
+	fileprivate func encodeAsJSONString(using encoder: JSONEncoder = JSONEncoder(), stringEncoding: String.Encoding = .utf8) throws -> String{
+		let jsonData = try encodeAsJSONData(using: encoder)
+		guard let jsonString = String(data: jsonData, encoding: stringEncoding) else{
+			let context = EncodingError.Context(codingPath: [], debugDescription: "Unable to convert data \(jsonData) from object \(self) to string.")
+			throw EncodingError.invalidValue(self, context)
+		}
+		return jsonString
 	}
 }
