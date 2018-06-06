@@ -167,7 +167,6 @@ class CursorPaginationTests: PaginationTestCase {
 				let page: CursorPage<ExampleModel> = try pageFetcher(request, cursor, pageLimit)
 				cursor = page.nextPageCursor
 				fetched.append(contentsOf: page.data)
-//				try page.toAnyDictionary().printPretty()
 				if cursor == nil { break }
 			}
 
@@ -201,13 +200,6 @@ class CursorPaginationTests: PaginationTestCase {
 			}
 		}
 	}
-
-
-//	func runTest(onSeedsOfSizes seedCounts: [Int]? = nil, with sorts: [QuerySort], orderTest: OrderTest) throws{
-//		try runTest(onSeedsOfSizes: seedCounts, pageFetcher: { (request, cursor, pageLimit) -> CursorPage<ExampleModel> in
-//			return try ExampleModel.paginate(on: request, cursor: cursor, count: pageLimit, sorts: sorts).wait()
-//		}, orderTest: orderTest)
-//	}
 
 	func runTest(onSeedsOfSizes seedCounts: [Int]? = nil, with sorts: [KeyPathSort<ExampleModel>], orderTest: OrderTest) throws{
 		try runTest(onSeedsOfSizes: seedCounts, pageFetcher: { (request, cursor, pageLimit) -> CursorPage<ExampleModel> in

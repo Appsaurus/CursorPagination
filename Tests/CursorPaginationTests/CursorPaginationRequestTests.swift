@@ -55,7 +55,6 @@ class CursorPaginationRequestTests: PaginationTestCase {
 											  queryItems: queryItems)
 			let page: CursorPage<ExampleModel> = try response.content.decode(CursorPage<ExampleModel>.self).wait()
 			models.append(contentsOf: page.data)
-			try debugPrint(page: page)
 			cursor = page.nextPageCursor
 		} while cursor != nil
 
