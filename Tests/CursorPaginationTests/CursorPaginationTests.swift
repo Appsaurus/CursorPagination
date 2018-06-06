@@ -1,6 +1,6 @@
 //
 //  PaginationTests.swift
-//  ServasaurusTests
+//  CursorPagination
 //
 //  Created by Brian Strobach on 12/28/17.
 //
@@ -16,7 +16,7 @@ import CursorPagination
 
 
 
-class PaginationTests: PaginationTestCase {
+class CursorPaginationTests: PaginationTestCase {
 
 	//MARK: Linux Testing
 	static var allTests = [
@@ -47,8 +47,8 @@ class PaginationTests: PaginationTestCase {
 		try super.setupOnce()
 		//If only testing one seed size, no need to reseed for each test.
 		if !testAllEdgeCases{
+			CursorPaginationTests.persistApplicationBetweenTests = true
 			try seedModels(seedCounts.first!)
-			PaginationTests.persistApplicationBetweenTests = true
 		}
 	}
 
@@ -167,8 +167,7 @@ class PaginationTests: PaginationTestCase {
 				let page: CursorPage<ExampleModel> = try pageFetcher(request, cursor, pageLimit)
 				cursor = page.nextPageCursor
 				fetched.append(contentsOf: page.data)
-				try page.toAnyDictionary().printPretty()
-				//			debugPrint(models: page.data)
+//				try page.toAnyDictionary().printPretty()
 				if cursor == nil { break }
 			}
 
@@ -204,11 +203,11 @@ class PaginationTests: PaginationTestCase {
 	}
 
 
-	func runTest(onSeedsOfSizes seedCounts: [Int]? = nil, with sorts: [QuerySort], orderTest: OrderTest) throws{
-		try runTest(onSeedsOfSizes: seedCounts, pageFetcher: { (request, cursor, pageLimit) -> CursorPage<ExampleModel> in
-			return try ExampleModel.paginate(on: request, cursor: cursor, count: pageLimit, sorts: sorts).wait()
-		}, orderTest: orderTest)
-	}
+//	func runTest(onSeedsOfSizes seedCounts: [Int]? = nil, with sorts: [QuerySort], orderTest: OrderTest) throws{
+//		try runTest(onSeedsOfSizes: seedCounts, pageFetcher: { (request, cursor, pageLimit) -> CursorPage<ExampleModel> in
+//			return try ExampleModel.paginate(on: request, cursor: cursor, count: pageLimit, sorts: sorts).wait()
+//		}, orderTest: orderTest)
+//	}
 
 	func runTest(onSeedsOfSizes seedCounts: [Int]? = nil, with sorts: [KeyPathSort<ExampleModel>], orderTest: OrderTest) throws{
 		try runTest(onSeedsOfSizes: seedCounts, pageFetcher: { (request, cursor, pageLimit) -> CursorPage<ExampleModel> in

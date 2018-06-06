@@ -9,7 +9,7 @@ import Foundation
 import Fluent
 import Vapor
 
-//MARK: Main external API
+//MARK: Main public API
 extension QueryBuilder where Model: CursorPaginatable {
 
 	/// Paginates a query on the given sorts using opqaue cursors. More
@@ -261,41 +261,41 @@ extension QueryBuilder where Model: CursorPaginatable {
 }
 
 //MARK: Anycodable/Reflection implementation (uses dict representation and KVC to build cursor)
-extension QueryBuilder where Model: CursorPaginatable {
-
-	//WARN: Uses reflection to generate cursor
-	public func paginate(cursor: String?,
-						 count: Int = Model.defaultPageSize,
-						 sorts: [QuerySort] = Model.defaultPageSorts) throws -> Future<CursorPage<Model>> {
-		var sorts: [QuerySort] = sorts
-		try ensureUniqueSort(sorts: &sorts, modelType: Model.self)
-
-		let cursorBuilder: (Model) throws -> String = { (model: Model) in
-			var cursor: String = ""
-			let json: Dictionary<String, Any> = try .init(model)
-			for sort in sorts{
-				let fieldName = sort.field.name
-				let value = json[fieldName] as Any
-				cursor += try self.cursorPart(forParameter: fieldName, withValue: value)
-			}
-			cursor = String(cursor.dropLast())
-			return cursor
-		}
-
-		return try paginate(cursor: cursor, cursorBuilder: cursorBuilder, count: count, sorts: sorts)
-	}
-
-	public func paginate(for req: Request,
-						 cursorBuilder: @escaping CursorBuilder<Model>,
-						 sorts: [QuerySort] = []) throws -> Future<CursorPage<Model>> {
-		let params = req.cursorPaginationParameters()
-
-		return try self.paginate(cursor: params?.cursor,
-								 cursorBuilder: cursorBuilder,
-								 count: params?.limit ?? Model.defaultPageSize,
-								 sorts: sorts)
-	}
-}
+//extension QueryBuilder where Model: CursorPaginatable {
+//
+//	//WARN: Uses reflection to generate cursor
+//	public func paginate(cursor: String?,
+//						 count: Int = Model.defaultPageSize,
+//						 sorts: [QuerySort] = Model.defaultPageSorts) throws -> Future<CursorPage<Model>> {
+//		var sorts: [QuerySort] = sorts
+//		try ensureUniqueSort(sorts: &sorts, modelType: Model.self)
+//
+//		let cursorBuilder: (Model) throws -> String = { (model: Model) in
+//			var cursor: String = ""
+//			let json: Dictionary<String, Any> = try .init(model)
+//			for sort in sorts{
+//				let fieldName = sort.field.name
+//				let value = json[fieldName] as Any
+//				cursor += try self.cursorPart(forParameter: fieldName, withValue: value)
+//			}
+//			cursor = String(cursor.dropLast())
+//			return cursor
+//		}
+//
+//		return try paginate(cursor: cursor, cursorBuilder: cursorBuilder, count: count, sorts: sorts)
+//	}
+//
+//	public func paginate(for req: Request,
+//						 cursorBuilder: @escaping CursorBuilder<Model>,
+//						 sorts: [QuerySort] = []) throws -> Future<CursorPage<Model>> {
+//		let params = req.cursorPaginationParameters()
+//
+//		return try self.paginate(cursor: params?.cursor,
+//								 cursorBuilder: cursorBuilder,
+//								 count: params?.limit ?? Model.defaultPageSize,
+//								 sorts: sorts)
+//	}
+//}
 
 fileprivate extension QueryBuilder{
 

@@ -1,7 +1,8 @@
 import XCTest
-@testable import ServasaurusTests
+@testable import CursorPaginationTests
 
 XCTMain([
 	testCase(CursorPaginationTests.allTests),
+	testCase(CursorPaginationRequestTests.allTests)
 ])
 
