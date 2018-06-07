@@ -24,8 +24,8 @@
         "repositoryURL": "https://github.com/Appsaurus/CodableExtended",
         "state": {
           "branch": null,
-          "revision": "3213abc9bba4ead3e2409fd0e24e3f5b3b121281",
-          "version": "0.1.9"
+          "revision": "f59eebb55440371077f714b88e7ca4eb1778f5ae",
+          "version": "0.1.10"
         }
       },
       {
@@ -96,8 +96,8 @@
         "repositoryURL": "https://github.com/Appsaurus/FluentTestUtils",
         "state": {
           "branch": null,
-          "revision": "66c2d315acfae2dd4ec24385ef73c88e58ff9ca0",
-          "version": "0.0.1"
+          "revision": "c9501e84abfb3fd5eeeb84606fbbf9a32d80bc36",
+          "version": "0.1.2"
         }
       },
       {
@@ -132,8 +132,8 @@
         "repositoryURL": "https://github.com/Appsaurus/RandomFactory",
         "state": {
           "branch": null,
-          "revision": "d95629abecb0639781a00ebc6074add61b71836c",
-          "version": "0.1.3"
+          "revision": "5292f68ba0adf5c965bfd75fa8228561149bdf13",
+          "version": "0.1.5"
         }
       },
       {
