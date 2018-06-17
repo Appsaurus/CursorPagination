@@ -47,21 +47,21 @@ public struct CursorPart{
 	public var value: String?
 }
 
-extension QuerySort{
-	public init<Root: Model, Value, KP: KeyPath<Root, Value>>(_ keyPath: KP, _ direction: QuerySortDirection = .ascending) throws{
-		self.init(field: try keyPath.makeQueryField(), direction: direction)
-	}
-}
-
-extension KeyPath where Root: Model {
-	public func ascending() throws -> QuerySort {
-		return try sort(.ascending)
-	}
-
-	public func descending() throws -> QuerySort {
-		return try sort(.descending)
-	}
-	public func sort(_ direction: QuerySortDirection = .ascending) throws -> QuerySort {
-		return try QuerySort(self, direction)
-	}
-}
+//extension QuerySort{
+//	public init<Root: Model, Value, KP: KeyPath<Root, Value>>(_ keyPath: KP, _ direction: QuerySortDirection = .ascending) throws{
+//		self.init(field: try keyPath.makeQueryField(), direction: direction)
+//	}
+//}
+//
+//extension KeyPath where Root: Model {
+//	public func ascending() throws -> QuerySort {
+//		return try sort(.ascending)
+//	}
+//
+//	public func descending() throws -> QuerySort {
+//		return try sort(.descending)
+//	}
+//	public func sort(_ direction: QuerySortDirection = .ascending) throws -> QuerySort {		
+//		return try QuerySort(self, direction)
+//	}
+//}

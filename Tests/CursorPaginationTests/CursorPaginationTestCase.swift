@@ -20,49 +20,29 @@ extension ExampleChildModel: CursorPaginatable{}
 extension ExampleSiblingModel: CursorPaginatable{}
 
 
-class PaginationTestCase: FluentTestAppTestCase {
+class CursorPaginationTestCase: FluentTestAppTestCase {
 	@discardableResult
 	func seedModels(_ count: Int = 30) throws -> [ExampleModel] {
-		var models = try ExampleModel.query(on: request).all().wait()
-		let total: Int = models.count
-		guard total != count else{
-			return models //Seed is alraedy setup for this seed size.
-		}
-		//Otherwise we need to reseed
-		try! ExampleModel.query(on: request).all().wait().delete(on: request).wait()
-		guard count > 0 else { return [] }
-		let conn = request
-		let ids: [Int] = Array(1...count)
-
-		models = try ExampleModel.findOrCreateModels(ids: ids, on: conn)
-		for model in models{
-			let sibling: ExampleSiblingModel = try ExampleSiblingModel.findOrCreateModel(id: model.id!, on: conn)
-			let _ = try model.siblings.attach(sibling, on: conn).wait()
-			let child1: ExampleChildModel = try ExampleChildModel.createModel(on: conn)
-			let child2: ExampleChildModel = try ExampleChildModel.createModel(on: conn)
-			let children: [ExampleChildModel] = [child1, child2]
-			try children.forEach { (child) in
-				child.optionalParentModelId = model.id!
-				let _ = try child.save(on: conn).wait()
-			}
+		var models: [ExampleModel] = []
+		switch count{
+		case 1:
+			models = [try ExampleModel.findOrCreateModel(id: 1)]
+		case 2...Int.max:
+			models = try ExampleModel.findOrCreateModels(ids: Array(1...count), on: request)
+		default :
+			break
 		}
 		return models
 	}
 
 	func debugPrint(models: [ExampleModel]) throws{
 		try models.forEach { (item) in
-			try item.toAnyDictionary().printPretty()
+			try item.toAnyDictionary().printPrettyJSONString()
 		}
 	}
 	func debugPrint<M: Model>(page: CursorPage<M>) throws{
-		try page.toAnyDictionary().printPretty()
+		try page.toAnyDictionary().printPrettyJSONString()
 	}
 }
 
-fileprivate extension Collection where Element: Model, Element.Database: QuerySupporting{
-
-	fileprivate func delete(on conn: DatabaseConnectable)  -> Future<Void>{
-		return map { $0.delete(on: conn) }.flatten(on: conn)
-	}
-}
 
