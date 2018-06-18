@@ -10,17 +10,16 @@ import Fluent
 import Vapor
 //import Pagination
 
-public protocol CursorPaginatable: Model where Self.Database: QuerySupporting {
+public protocol CursorPaginatable: Model {
 	static var defaultPageSize: Int { get }
 	static var maxPageSize: Int? { get }
-	static var defaultPageSorts: [QuerySort] { get }
+	static var defaultPageSorts: [KeyPathSort<Self>] { get }
 }
 
 extension CursorPaginatable{
 
-	public static var defaultPageSorts: [QuerySort] {
-		let field = (try? idKey.makeQueryField()) ?? QueryField(name: "id")
-		return [QuerySort(field: field, direction: .ascending)]
+	public static var defaultPageSorts: [KeyPathSort<Self>] {
+		return [createdAtKey?.descendingSort ?? idKey.ascendingSort]
 	}
 	public static var defaultPageSize: Int {
 		return 10
@@ -28,14 +27,6 @@ extension CursorPaginatable{
 
 	public static var maxPageSize: Int? {
 		return nil
-	}
-}
-
-extension CursorPaginatable where Self: Timestampable {
-	public static var defaultPageSorts: [QuerySort] {
-		return [
-			QuerySort(field:  QueryField(entity: Self.entity, name: "createdAt"), direction: .descending)
-		]
 	}
 }
 
@@ -68,16 +59,16 @@ extension CursorPaginatable {
 	}
 
 
-	public static func paginate(request: Request,
-								cursorBuilder: @escaping CursorBuilder<Self>,
-								sorts: [QuerySort] = []) throws -> Future<CursorPage<Self>> {
-		let params = request.cursorPaginationParameters()
-
-		return try self.query(on: request).paginate(cursor: params?.cursor,
-													cursorBuilder: cursorBuilder,
-													count: params?.limit ?? Self.defaultPageSize,
-													sorts: sorts)
-	}
+//	public static func paginate(request: Request,
+//								cursorBuilder: @escaping CursorBuilder<Self>,
+//								sorts: [Database.QuerySort] = []) throws -> Future<CursorPage<Self>> {
+//		let params = request.cursorPaginationParameters()
+//
+//		return try self.query(on: request).paginate(cursor: params?.cursor,
+//													cursorBuilder: cursorBuilder,
+//													count: params?.limit ?? Self.defaultPageSize,
+//													sorts: sorts)
+//	}
 
 
 

@@ -16,42 +16,82 @@ public struct CursorPage<E: CursorPaginatable>: Content {
 	public let remaining: Int
 }
 
-public struct KeyPathSort<M: CursorPaginatable>{
-	public let querySort: M.Database.QuerySort
-	public let keyPath:  PartialKeyPath<M>
-	public let fluentProperty: FluentProperty
+//extension KeyPath where Root: CursorPaginatable{
+//
+//	public func keyPathSort(_ direction: Root.Database.QuerySortDirection = Root.Database.querySortDirectionAscending) -> KeyPathSort<Root>{
+//		return KeyPathSort<Root>.sort(self, direction)
+//	}
+//}
+extension KeyPath where Root: Model{
+
+	public func querySort(_ direction: Root.Database.QuerySortDirection = Root.Database.querySortDirectionAscending)-> Root.Database.QuerySort{
+		return Root.Database.querySort(queryField, direction)
+	}
+	public var fluentProperty: FluentProperty{
+		return .keyPath(self)
+	}
+
+	public var queryField: Root.Database.QueryField{
+		return Root.Database.queryField(fluentProperty)
+	}
+
 	public var propertyName: String{
 		return fluentProperty.path.joined(separator: "_")
 	}
-	public init<T>(_ keyPath: KeyPath<M, T>, _ direction: M.Database.QuerySortDirection = M.Database.querySortDirectionAscending) throws{
+}
 
-		self.querySort = M.Database.querySort(M.Database.queryField(.keyPath(keyPath)), direction)
+public enum KeyPathSortDirection<M: CursorPaginatable>{
+	case ascending, descending
+	public var querySortDirection: M.Database.QuerySortDirection{
+		switch self{
+		case .ascending:
+			return M.Database.querySortDirectionAscending
+		case .descending:
+			return M.Database.querySortDirectionDescending
+		}
+	}
+}
+public struct KeyPathSort<M: CursorPaginatable>{
+	public let keyPath:  PartialKeyPath<M>
+	public let direction: KeyPathSortDirection<M>
+	public var propertyName: String
+	public var fluentProperty: FluentProperty
+	public var querySort: M.Database.QuerySort
+	public var querySortDirection: M.Database.QuerySortDirection{
+		return direction.querySortDirection
+	}
+
+	public init<T>(_ keyPath: KeyPath<M, T>, _ direction: KeyPathSortDirection<M> = .ascending){
 		self.keyPath = keyPath
-		self.fluentProperty = .keyPath(keyPath)
-	}
-	public static func sort<M: Model, T>(_ keyPath: KeyPath<M, T>, _ direction: M.Database.QuerySortDirection = M.Database.querySortDirectionAscending) throws -> KeyPathSort<M>{
-		return try KeyPathSort<M>(keyPath, direction)
-	}
-
-	public static func ascending<M: Model, T>(_ keyPath: KeyPath<M, T>) throws -> KeyPathSort<M>{
-		return try sort(keyPath, M.Database.querySortDirectionAscending)
+		self.direction = direction
+		self.fluentProperty = keyPath.fluentProperty
+		self.propertyName = keyPath.propertyName
+		self.querySort = M.Database.querySort(keyPath.queryField, direction.querySortDirection)
 	}
 
-	public static func descending<M: Model, T>(_ keyPath: KeyPath<M, T>) throws -> KeyPathSort<M>{
-		return try sort(keyPath, M.Database.querySortDirectionDescending)
+	public static func sort<M: Model, T>(_ keyPath: KeyPath<M, T>, _ direction: KeyPathSortDirection<M> = .ascending) -> KeyPathSort<M>{
+		return KeyPathSort<M>(keyPath, direction)
+	}
+
+	public static func ascending<M: Model, T>(_ keyPath: KeyPath<M, T>) -> KeyPathSort<M>{
+		return sort(keyPath, .ascending)
+	}
+
+	public static func descending<M: Model, T>(_ keyPath: KeyPath<M, T>) -> KeyPathSort<M>{
+		return sort(keyPath, .descending)
 	}
 }
 
 extension KeyPath where Root: CursorPaginatable {
-	public func ascendingSort() throws -> KeyPathSort<Root> {
-		return try sort(Root.Database.querySortDirectionAscending)
+	public var ascendingSort: KeyPathSort<Root> {
+		return sort(.ascending)
 	}
 
-	public func descendingSort() throws -> KeyPathSort<Root> {
-		return try sort(Root.Database.querySortDirectionDescending)
+	public var descendingSort: KeyPathSort<Root> {
+		return sort(.descending)
 	}
-	public func sort(_ direction: Root.Database.QuerySortDirection = Root.Database.querySortDirectionAscending) throws -> KeyPathSort<Root> {
-		return try KeyPathSort(self, direction)
+	public func sort(_ direction: KeyPathSortDirection<Root> = .ascending) -> KeyPathSort<Root> {
+		return KeyPathSort(self, direction)
 	}
 }
 

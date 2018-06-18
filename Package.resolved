@@ -78,8 +78,8 @@
         "repositoryURL": "https://github.com/vapor/fluent.git",
         "state": {
           "branch": null,
-          "revision": "04c44c636a5f4ab6a81e47db762a32adf25c1cf8",
-          "version": "3.0.0-rc.3.0.3"
+          "revision": "ba8bd2fb3c09cd6e9e2e75eb8cf7c3968d123fb9",
+          "version": "3.0.0-rc.3.0.1"
         }
       },
       {
@@ -96,8 +96,8 @@
         "repositoryURL": "https://github.com/Appsaurus/FluentTestUtils",
         "state": {
           "branch": null,
-          "revision": "b3ba99ad45cfeac339ed7046e985dd073de321c5",
-          "version": "0.1.3"
+          "revision": "1c9be805fbee24fb3925da66009e0fc4a84d95de",
+          "version": "1.0.0-rc.3.0.1"
         }
       },
       {

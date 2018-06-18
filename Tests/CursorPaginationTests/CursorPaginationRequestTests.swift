@@ -34,10 +34,10 @@ class CursorPaginationRequestTests: CursorPaginationTestCase {
 
 	override func configure(router: Router) throws {
 		try super.configure(router: router)
-		router.get("models") { request -> Future<CursorPage<ExampleModel>> in
-			return try ExampleModel.paginate(request: request,
-											 sorts: .descending(\.dateField), .ascending(\.stringField))
-		}
+//		router.get("models") { request -> Future<CursorPage<ExampleModel>> in
+//			return try ExampleModel.paginate(request: request,
+//											 sorts: .descending(\.dateField), .ascending(\.stringField))
+//		}
 	}
 
 	func testPaginationRequest() throws{

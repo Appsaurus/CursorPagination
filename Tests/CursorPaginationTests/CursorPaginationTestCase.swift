@@ -43,6 +43,21 @@ class CursorPaginationTestCase: FluentTestAppTestCase {
 	func debugPrint<M: Model>(page: CursorPage<M>) throws{
 		try page.toAnyDictionary().printPrettyJSONString()
 	}
+
+	open override func configureApplication(_ config: inout Config, _ env: inout Environment, _ services: inout Services) throws {
+		try super.configureApplication(&config, &env, &services)
+		/// Create default content config
+		var contentConfig = ContentConfig.default()
+
+		/// Create custom JSON encoder
+		let jsonEncoder: JSONEncoder = .defaultEncoder
+		let jsonDecoder: JSONDecoder = .defaultDecoder
+
+		/// Register JSON encoder and content config
+		contentConfig.use(encoder: jsonEncoder, for: .json)
+		contentConfig.use(decoder: jsonDecoder, for: .json)
+		services.register(contentConfig)
+	}
 }
 
 

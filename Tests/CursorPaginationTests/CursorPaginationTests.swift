@@ -41,11 +41,33 @@ class CursorPaginationTests: CursorPaginationTestCase {
 	#if os(Linux)
 	var testAllEdgeCases = false //FIXME:: Setting this to true may break Linux test. Not sure why yet, just hangs.
 	#else
-	var testAllEdgeCases = true
+	var testAllEdgeCases = false
 	#endif
 
-	lazy var seedCounts = testAllEdgeCases ? [0, 1, 5, 10, 11] : [10]
+	lazy var seedCounts = testAllEdgeCases ? [0, 1, 5, 10, 11] : [15]
 	var pageLimit = 5
+
+
+	func testSimplePaginate() throws{
+		let ids = Array(1...20)
+
+//		let initializer = { () -> ExampleModel in
+//			let model = ExampleModel()
+//			model.optionalStringField = "optoinal"
+//			return model
+//		}
+//		let models = try ExampleModel.findOrCreateModels(ids: ids, lazyConstructor: .custom(initializer: initializer), on: request)
+		//		let found: CursorPage<ExampleModel> = try ExampleModel.paginate(on: request, cursor: nil, sorts: ExampleModel.defaultPageSorts).wait()
+
+		let models = try ExampleModel.findOrCreateModels(ids: ids)
+		try debugPrint(models: models)
+		let results = try ExampleModel.query(on: request).paginate(cursor: nil, sortFields: ExampleModel.defaultPageSorts).wait()
+		try debugPrint(page: results)
+		if let nextPage = results.nextPageCursor{			
+			let nextPageResults = try ExampleModel.query(on: request).paginate(cursor: nextPage, sortFields: ExampleModel.defaultPageSorts).wait()
+			try debugPrint(page: nextPageResults)
+		}
+	}
 
 	func testComplexSortPagination() throws{
 		try runTest(with: [.ascending(\.booleanField), .ascending(\.stringField)], orderTest: { (previousModel, model) -> Bool in
@@ -110,7 +132,7 @@ class CursorPaginationTests: CursorPaginationTestCase {
 		})
 	}
 
-	internal func optionalStringOrderTest(order: QuerySortDirection, model: ExampleModel, previousModel: ExampleModel) -> Bool{
+	internal func optionalStringOrderTest(order: KeyPathSortDirection<ExampleModel>, model: ExampleModel, previousModel: ExampleModel) -> Bool{
 
 		let allNilCase = (model.optionalStringField == nil && previousModel.optionalStringField == nil)
 
@@ -165,12 +187,14 @@ class CursorPaginationTests: CursorPaginationTestCase {
 				try ExampleModel.query(on: req).all().delete(on: req).wait()
 			}
 			let models: [ExampleModel] = try seedModels(seedCount)
+			try debugPrint(models: models)
 			let sortedIds: [Int] = sortIds(for: models)
 			var cursor: String? = nil
 			let total: Int = try ExampleModel.query(on: request).count().wait()
 			var fetched: [ExampleModel] = []
 			while fetched.count != total && total > 0{
 				let page: CursorPage<ExampleModel> = try pageFetcher(request, cursor, pageLimit).wait()
+				try debugPrint(page: page)
 				cursor = page.nextPageCursor
 				fetched.append(contentsOf: page.data)
 				if cursor == nil { break }
