@@ -13,6 +13,7 @@ import Fluent
 import HTTP
 import CodableExtended
 import CursorPagination
+import SQLite
 
 
 
@@ -48,47 +49,30 @@ class CursorPaginationTests: CursorPaginationTestCase {
 	var pageLimit = 5
 
 
-	func testSimplePaginate() throws{
-		let ids = Array(1...20)
-
-//		let initializer = { () -> ExampleModel in
-//			let model = ExampleModel()
-//			model.optionalStringField = "optoinal"
-//			return model
-//		}
-//		let models = try ExampleModel.findOrCreateModels(ids: ids, lazyConstructor: .custom(initializer: initializer), on: request)
-		//		let found: CursorPage<ExampleModel> = try ExampleModel.paginate(on: request, cursor: nil, sorts: ExampleModel.defaultPageSorts).wait()
-
-		let models = try ExampleModel.findOrCreateModels(ids: ids)
-		try debugPrint(models: models)
-		let results = try ExampleModel.query(on: request).paginate(cursor: nil, sortFields: ExampleModel.defaultPageSorts).wait()
-		try debugPrint(page: results)
-		if let nextPage = results.nextPageCursor{			
-			let nextPageResults = try ExampleModel.query(on: request).paginate(cursor: nextPage, sortFields: ExampleModel.defaultPageSorts).wait()
-			try debugPrint(page: nextPageResults)
-		}
+	func debugPrint(sqlLiteQuery: SQLiteQuery.FluentQuery){
+		Swift.debugPrint("QueryDescription: \(sqlLiteQuery)")
 	}
 
 	func testComplexSortPagination() throws{
-		try runTest(with: [.ascending(\.booleanField), .ascending(\.stringField)], orderTest: { (previousModel, model) -> Bool in
-			let generalCase = model.booleanField == previousModel.booleanField && model.stringField >= previousModel.stringField
-			let boolTransitionEdgeCase = model.booleanField > previousModel.booleanField
-			return generalCase || boolTransitionEdgeCase
+		try runTest(with: [.ascending(\.doubleField), .ascending(\.stringField)], orderTest: { (previousModel, model) -> Bool in
+			let tiebreakerCase = model.doubleField == previousModel.doubleField && model.stringField >= previousModel.stringField
+			let generalCase = model.doubleField > previousModel.doubleField
+			return generalCase || tiebreakerCase
 		})
 
-		try runTest(with: [.ascending(\.booleanField), .ascending(\.stringField), .ascending(\.optionalStringField)], orderTest: { (previousModel, model) -> Bool in
+		try runTest(with: [.ascending(\.doubleField), .ascending(\.stringField), .ascending(\.optionalStringField)], orderTest: { (previousModel, model) -> Bool in
 			let generalOptionalStringCase = model.optionalStringField == nil
 					|| previousModel.optionalStringField == nil
 					|| model.optionalStringField! > previousModel.optionalStringField!
 					|| (model.optionalStringField! == previousModel.optionalStringField! && model.id! > previousModel.id!)
-			let generalCase = model.booleanField == previousModel.booleanField
+			let doubleAndStringTieCase = model.doubleField == previousModel.doubleField
 				&& model.stringField == previousModel.stringField
 				&& generalOptionalStringCase
 
-			let edgeCase1 = model.booleanField == previousModel.booleanField
+			let doubleTieCase = model.doubleField == previousModel.doubleField
 				&& model.stringField > previousModel.stringField
-			let edgeCase2 = model.booleanField > previousModel.booleanField
-			return generalCase || edgeCase1 || edgeCase2
+			let doubleCase = model.doubleField > previousModel.doubleField
+			return doubleAndStringTieCase || doubleTieCase || doubleCase
 		})
 	}
 
@@ -104,12 +88,14 @@ class CursorPaginationTests: CursorPaginationTestCase {
 
 	func testBoolSortPagination() throws{
 
-		try runTest(with: [.ascending(\.booleanField)], orderTest: { (previousModel, model) -> Bool in
-			return model.booleanField >= previousModel.booleanField
-		})
-		try runTest(with: [.descending(\.booleanField)], orderTest: { (previousModel, model) -> Bool in
-			return model.booleanField <= previousModel.booleanField
-		})
+//		try runTest(with: [.ascending(\.booleanField)], orderTest: { (previousModel, model) -> Bool in
+//			return model.booleanField >= previousModel.booleanField
+//		})
+//		try runTest(with: [.descending(\.booleanField)], orderTest: { (previousModel, model) -> Bool in
+//			let lh = previousModel.booleanField
+//			let rh = previousModel.booleanField
+//			return (lh == true && rh == false) || lh == rh
+//		})
 	}
 
 	func testStringSortPagination() throws {

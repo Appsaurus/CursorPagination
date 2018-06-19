@@ -57,6 +57,7 @@ public struct KeyPathSort<M: CursorPaginatable>{
 	public var propertyName: String
 	public var fluentProperty: FluentProperty
 	public var querySort: M.Database.QuerySort
+	public var queryField: M.Database.QueryField
 	public var querySortDirection: M.Database.QuerySortDirection{
 		return direction.querySortDirection
 	}
@@ -67,6 +68,7 @@ public struct KeyPathSort<M: CursorPaginatable>{
 		self.fluentProperty = keyPath.fluentProperty
 		self.propertyName = keyPath.propertyName
 		self.querySort = M.Database.querySort(keyPath.queryField, direction.querySortDirection)
+		self.queryField = keyPath.queryField
 	}
 
 	public static func sort<M: Model, T>(_ keyPath: KeyPath<M, T>, _ direction: KeyPathSortDirection<M> = .ascending) -> KeyPathSort<M>{

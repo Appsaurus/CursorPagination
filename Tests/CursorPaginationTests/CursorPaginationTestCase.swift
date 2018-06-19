@@ -57,6 +57,7 @@ class CursorPaginationTestCase: FluentTestAppTestCase {
 		contentConfig.use(encoder: jsonEncoder, for: .json)
 		contentConfig.use(decoder: jsonDecoder, for: .json)
 		services.register(contentConfig)
+
 	}
 }
 

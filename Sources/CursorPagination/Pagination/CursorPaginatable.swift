@@ -30,6 +30,9 @@ extension CursorPaginatable{
 	}
 }
 
+extension QueryBuilder where Result: CursorPaginatable, Result.Database == Database {
+	//You implementation here
+}
 
 extension CursorPaginatable {
 

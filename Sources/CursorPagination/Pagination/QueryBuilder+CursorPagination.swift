@@ -10,13 +10,6 @@ import Fluent
 import Vapor
 
 ////MARK: Main public API
-
-
-//extension Database{
-//	static func queryField(_ property: String) -> Database.QueryField{
-//		FluentProperty
-//	}
-//}
 extension QueryBuilder where Result: CursorPaginatable, Result.Database == Database {
 
 	/// Paginates a query on the given sorts using opqaue cursors. More
@@ -29,122 +22,25 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 	public func paginate(cursor: String?,
 						 count: Int = Result.defaultPageSize,
 						 sortFields: [KeyPathSort<Result>]) throws -> Future<CursorPage<Result>> {
-		var sortFields = sortFields
-		try ensureUniqueKeyPathSort(sorts: &sortFields)
-		let cursorBuilder: (Result) throws -> String = { (model: Result) in
-			var cursor: String = ""
-			for field in sortFields{
-				let value = model[keyPath: field.keyPath]
-				cursor += try self.cursorPart(forParameter: field.propertyName, withValue: value)
-			}
-			cursor = String(cursor.dropLast())
-			return cursor
-		}
-
-//		let sorts: [Database.QuerySort] = sortFields.map({ $0.querySort })
-		return try paginate(cursor: cursor, cursorBuilder: cursorBuilder, count: count, sorts: sortFields)
+		var sorts = sortFields
+		try ensureUniqueSort(sorts: &sorts)
+		return try paginate(cursor: cursor, cursorBuilder: defaultCursorBuilder(sorts), count: count, sorts: sorts)
 	}
 
 	public func paginate(cursor: String?,
 						 cursorBuilder: @escaping CursorBuilder<Result>,
 						 count: Int = 20,
 						 sorts: [KeyPathSort<Result>] = []) throws -> Future<CursorPage<Result>> {
+		var sorts = sorts
+		try ensureUniqueSort(sorts: &sorts)
+		let query = try sortedForPagination(cursor: cursor, cursorBuilder: cursorBuilder, sorts: sorts)
 
-		// Filter out results before or after the cursor, depending upon order
-		cursorWork: if let cursor = cursor{
-			guard let decodedCursor = cursor.fromBase64() else {
-				throw Abort(.badRequest, reason: "Expected cursor to be a base64 encoded string, received \(cursor).")
-			}
-
-			let cursorParts = decodedCursor.split(separator: ",")
-
-			guard cursorParts.count == sorts.count else{
-				throw Abort(.badRequest, reason: "That cursor does not does not match the sorts set for this query.")
-			}
-			var orderedCursorParts: [CursorPart] = []
-			for cursorPart in cursorParts{
-				let cursorSplit = cursorPart.split(separator: ":")
-
-				guard 1...2 ~= cursorSplit.count   else { //1 == nil value
-					throw Abort(.badRequest, reason: "Improperly formatted cursor part: \(cursorPart). Expected a key value pair delimited by ':'.")
-				}
-				let key: String = String(cursorSplit[0])
-
-				let value: String? = cursorSplit.count == 2 ? String(cursorSplit[1]).fromBase64()! : nil
-				orderedCursorParts.append(CursorPart(key: key, value: value))
-			}
-
-			debugPrint("Cursor decoded : \(orderedCursorParts.map({$0.key + " : " + ($0.value ?? "nil")}))")
-			guard orderedCursorParts.count > 0 else {
-				throw Abort(.badRequest, reason: "This cursor has no parts.")
-			}
-
-			guard let tieBreakerCursorPart = orderedCursorParts.last, let tiebreakerSort: KeyPathSort<Result> = sorts.last, tieBreakerCursorPart.key == tiebreakerSort.propertyName else{
-				throw Abort(.badRequest, reason: "Improperly formatted pagination query. Last cursor part does not match final sort.")
-			}
-
-			guard orderedCursorParts.count > 1 else{ //Must be a unique, single field sort. So, we only need to get the values greater than or equal to the cursor fields value.
-				try filter(for: tiebreakerSort, startingAt: tieBreakerCursorPart)
-				break cursorWork
-			}
-
-			guard orderedCursorParts.count > 2 else{//One nondistinct sort + one distinct tiebreaker sort
-				let nonDistinctCursorPart = orderedCursorParts.first!
-				try group(Database.queryFilterRelationOr) { (or) in
-					or.group(Database.queryFilterRelationAnd){ (and) in
-						and.filter(nonDistinctCursorPart.key, Database.queryFilterMethodEqual, nonDistinctCursorPart.value)
-						and.filter(tieBreakerCursorPart.key, self.filterTiebreakerType(for: tiebreakerSort.direction), tieBreakerCursorPart.value)
-					}
-					try or.filter(for: sorts[0], startingAt: nonDistinctCursorPart, inclusive: false)
-				}
-				break cursorWork
-			}
-
-			//There could be n nondistinct sorts + 1 final tiebreaker sort.
-			//We must account for tiebreaks on each nondistinct sort.
-			try group(Database.queryFilterRelationOr) { (or) in
-				var cursorPartStack = orderedCursorParts
-				while cursorPartStack.count > 0{
-
-					try or.group(Database.queryFilterRelationAnd){ (and) in
-						let lastIndex = cursorPartStack.count - 1
-						for i in 0...lastIndex{
-							let part = cursorPartStack[i]
-							guard i != lastIndex else{
-								if sorts.count == cursorPartStack.count{
-									try and.filter(for: sorts[i], startingAt: part)
-								}
-								else{
-									try and.filter(for: sorts[i], startingAt: part, inclusive: false)
-								}
-								cursorPartStack.removeLast()
-								continue
-							}
-							and.filter(part.key, Database.queryFilterMethodEqual, part.value)
-						}
-					}
-				}
-			}
-		}
-
-		//Must overwrite other sorts that could break our sort order.
-		//Sorts must be set in order matching cursor.
-		sorts.forEach { (sort) in
-			let _ = self.sort(sort.querySort)
-		}
-
-
-		//Additionally fetch first item of next page to generate cursor
+		let copy = self.query
+		let total: Future<Int> = self.count()
+		self.query = copy
+		//Fetch our data plus the first item of the next page
 		let limitIncludingNextItem = count + 1
-
-//		let total: Future<Int> = self.count()
-		let total: Future<Int> = all().map(to: Int.self) { (results) -> Int in
-			return results.count
-		}
-
-		//Fetch our data
-		let data: Future<[Result]> = range(...limitIncludingNextItem).all()
-
+		let data: Future<[Result]> = query.range(...limitIncludingNextItem).all()
 		return map(to: CursorPage<Result>.self, data, total) { data, total in
 
 			var data = data
@@ -163,6 +59,110 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 		}
 	}
 
+
+	public func sortedForPagination(cursor: String?,
+						 sortFields: [KeyPathSort<Result>]) throws -> QueryBuilder<Database, Result> {
+		var sorts = sortFields
+		try ensureUniqueSort(sorts: &sorts)
+		return try sortedForPagination(cursor: cursor, cursorBuilder: defaultCursorBuilder(sorts), sorts: sorts)
+	}
+
+	public func sortedForPagination(cursor: String?,
+						 cursorBuilder: @escaping CursorBuilder<Result>,
+						 sorts: [KeyPathSort<Result>] = []) throws -> QueryBuilder<Database, Result> {
+		var sorts = sorts
+		try ensureUniqueSort(sorts: &sorts)
+		try filter(cursor: cursor, sorts: sorts)
+		sorts.forEach { (sort) in
+			let _ = self.sort(sort.querySort)
+		}
+		return self
+	}
+
+	// Filter out results before or after the cursor, depending upon order
+	@discardableResult
+	public func filter(cursor: String?, sorts: [KeyPathSort<Result>]) throws -> QueryBuilder<Database, Result>{
+			guard let cursor = cursor else {
+				return self
+			}
+			guard let decodedCursor = cursor.fromBase64() else {
+				throw Abort(.badRequest, reason: "Expected cursor to be a base64 encoded string, received \(cursor).")
+			}
+
+			let cursorParts = decodedCursor.split(separator: ",")
+			guard cursorParts.count == sorts.count else{
+				throw Abort(.badRequest, reason: "That cursor does not does not match the sorts set for this query.")
+			}
+			var orderedCursorParts: [CursorPart] = []
+			for cursorPart in cursorParts{
+				let cursorSplit = cursorPart.split(separator: ":")
+
+				guard 1...2 ~= cursorSplit.count   else { //1 == nil value
+					throw Abort(.badRequest, reason: "Improperly formatted cursor part: \(cursorPart). Expected a key value pair delimited by ':'.")
+				}
+				let key: String = String(cursorSplit[0])
+
+				let value: String? = cursorSplit.count == 2 ? String(cursorSplit[1]).fromBase64()! : nil
+				orderedCursorParts.append(CursorPart(key: key, value: value))
+			}
+
+//			debugPrint("Cursor decoded : \(orderedCursorParts.map({$0.key + " : " + ($0.value ?? "nil")}))")
+			guard orderedCursorParts.count > 0 else {
+				throw Abort(.badRequest, reason: "This cursor has no parts.")
+			}
+
+			guard let tieBreakerCursorPart = orderedCursorParts.last, let tiebreakerSort: KeyPathSort<Result> = sorts.last, tieBreakerCursorPart.key == tiebreakerSort.propertyName else{
+				throw Abort(.badRequest, reason: "Improperly formatted pagination query. Last cursor part does not match final sort.")
+			}
+
+			guard orderedCursorParts.count > 1 else{ //Must be a unique, single field sort. So, we only need to get the values greater than or equal to the cursor fields value.
+				try filter(for: tiebreakerSort, startingAt: tieBreakerCursorPart)
+				return self
+			}
+
+			guard orderedCursorParts.count > 2 else{//One nondistinct sort + one distinct tiebreaker sort
+				let nonDistinctCursorPart = orderedCursorParts.first!
+				let nonDistinctQueryField = sorts.first!.queryField
+				try group(Database.queryFilterRelationOr) { (or) in
+					or.group(Database.queryFilterRelationAnd){ (and) in
+						and.filter(nonDistinctQueryField, Database.queryFilterMethodEqual, nonDistinctCursorPart.value)
+						and.filter(tiebreakerSort.queryField, self.filterTiebreakerType(for: tiebreakerSort.direction), tieBreakerCursorPart.value)
+					}
+					try or.filter(for: sorts[0], startingAt: nonDistinctCursorPart, inclusive: false)
+				}
+				return self
+			}
+
+			//There could be n nondistinct sorts + 1 final tiebreaker sort.
+			//We must account for tiebreaks on each nondistinct sort.
+			try group(Database.queryFilterRelationOr) { (or) in
+				var cursorPartStack = orderedCursorParts
+				var sortStack = sorts
+				while cursorPartStack.count > 0{
+					try or.group(Database.queryFilterRelationAnd){ (and) in
+						let lastIndex = cursorPartStack.count - 1
+						for i in 0...lastIndex{
+							let part = cursorPartStack[i]
+							guard i != lastIndex else{
+								if sorts.count == cursorPartStack.count{
+									try and.filter(for: sorts[i], startingAt: part)
+								}
+								else{
+									try and.filter(for: sorts[i], startingAt: part, inclusive: false)
+								}
+								cursorPartStack.removeLast()
+								sortStack.removeLast()
+								continue
+							}
+							and.filter(sortStack[i].queryField, Database.queryFilterMethodEqual, part.value)
+						}
+					}
+				}
+			}
+			return self
+
+	}
+
 	public func filterTiebreakerType(for direction: KeyPathSortDirection<Result>, inclusive: Bool = true) -> Database.QueryFilterMethod{
 		switch (inclusive, direction){
 		case (true, .ascending):
@@ -179,62 +179,55 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 	@discardableResult
 	public func filter(for sort: KeyPathSort<Result>, startingAt cursor: CursorPart, inclusive: Bool = true) throws -> QueryBuilder<Database, Result>{
 		let key = cursor.key
+		let field = sort.queryField
 		let direction = sort.direction
 
 		guard let value = cursor.value else{
 			switch (inclusive, direction){
 			case (false, .ascending):
-				return filter(key, Database.queryFilterMethodNotEqual, cursor.value) //Include values that are not null
-			default: return self //Do nothing, nulls are naturally handled by the sort
+				filter(field, Database.queryFilterMethodNotEqual, cursor.value) //Include values that are not null
+			default: break //Do nothing, nulls are naturally handled by the sort
 			}
+			return self
 		}
 
 		let nilValue: String? = nil
 		switch (inclusive, direction){
 		case (true, .ascending):
-			return filter(key, Database.queryFilterMethodGreaterThanOrEqual, value)
+			filter(field, Database.queryFilterMethodGreaterThanOrEqual, value)
 		case (false, .ascending):
-			return filter(key, Database.queryFilterMethodGreaterThanOrEqual, value)
+			filter(field, Database.queryFilterMethodGreaterThan, value)
 		case (true, .descending):
 			let idKey: String = Result.idKey.propertyName
 			if key == idKey {
-				return filter(key, Database.queryFilterMethodLessThanOrEqual, value)
+				filter(field, Database.queryFilterMethodLessThanOrEqual, value)
 			}
-			return group(Database.queryFilterRelationOr){ (or) in //Handle nullability, sort nulls to be last
-				or.filter(key, Database.queryFilterMethodLessThanOrEqual, value)
-				or.filter(key, Database.queryFilterMethodEqual, nilValue)
+			else{
+				group(Database.queryFilterRelationOr){ (or) in //Handle nullability, sort nulls to be last
+					or.filter(field, Database.queryFilterMethodLessThanOrEqual, value)
+					or.filter(field, Database.queryFilterMethodEqual, nilValue)
+				}
 			}
 		case (false, .descending):
 			let idKey: String = Result.idKey.propertyName
 			if key == idKey {
-				return filter(key, Database.queryFilterMethodLessThan, value)
+				filter(field, Database.queryFilterMethodLessThan, value)
 			}
-			return group(Database.queryFilterRelationOr){ (or) in //Handle nullability, sort nulls to be last
-				or.filter(key, Database.queryFilterMethodLessThan, value)
-				or.filter(key, Database.queryFilterMethodEqual, nilValue)
+			else{
+				group(Database.queryFilterRelationOr){ (or) in //Handle nullability, sort nulls to be last
+					or.filter(field, Database.queryFilterMethodLessThan, value)
+					or.filter(field, Database.queryFilterMethodEqual, nilValue)
+				}
 			}
 		}
+		return self
 	}
 	public func ensureUniqueSort(sorts: inout [KeyPathSort<Result>]) throws {
-		if sorts.count == 0 { sorts.append(contentsOf: Result.defaultPageSorts) }
-		if sorts.count == 0 || sorts.last?.keyPath != Result.idKey{
-			//Use id for tiebreakers on nonunique sorts //TODO: Check schema for uniqueness instead of always applying id as tiebreaker
-			sorts.append(Result.idKey.ascendingSort)
+		if sorts.count == 0 {
+			sorts.append(contentsOf: Result.defaultPageSorts)
 		}
-	}
-
-//	public func ensureUniqueSortField(sorts: inout [AnyKeyPath]) {
-//		//Use id for tiebreakers on nonunique sorts
-//		//TODO: Check schema for uniqueness instead of always applying id as tiebreaker
-//		if sorts.last != Result.idKey{
-//			sorts.append(Result.idKey)
-//		}
-//	}
-
-	public func ensureUniqueKeyPathSort(sorts: inout [KeyPathSort<Result>]) throws {
-		//Use id for tiebreakers on nonunique sorts
-		//TODO: Check schema for uniqueness instead of always applying id as tiebreaker
-		if sorts.last?.keyPath != Result.idKey{
+		if sorts.count == 0 || sorts.last?.propertyName != Result.idKey.propertyName{
+			//Use id for tiebreakers on nonunique sorts //TODO: Check schema for uniqueness instead of always applying id as tiebreaker
 			sorts.append(Result.idKey.ascendingSort)
 		}
 	}
@@ -260,58 +253,18 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 		}
 	}
 
-
-}
-
-//MARK: Anycodable/Reflection implementation (uses dict representation and KVC to build cursor)
-//extension QueryBuilder where Result: CursorPaginatable {
-//
-//	//WARN: Uses reflection to generate cursor
-//	public func paginate(cursor: String?,
-//						 count: Int = Result.defaultPageSize,
-//						 sorts: [Database.QuerySort] = Result.defaultPageSorts) throws -> Future<CursorPage<Result>> {
-//		var sorts: [Database.QuerySort] = sorts
-//		try ensureUniqueSort(sorts: &sorts, modelType: Result.self)
-//
-//		let cursorBuilder: (Result) throws -> String = { (model: Result) in
-//			var cursor: String = ""
-//			let json: Dictionary<String, Any> = try .init(model)
-//			for sort in sorts{
-//				let fieldName = sort.field.name
-//				let value = json[fieldName] as Any
-//				cursor += try self.cursorPart(forParameter: fieldName, withValue: value)
-//			}
-//			cursor = String(cursor.dropLast())
-//			return cursor
-//		}
-//
-//		return try paginate(cursor: cursor, cursorBuilder: cursorBuilder, count: count, sorts: sorts)
-//	}
-//
-//	public func paginate(for req: Request,
-//						 cursorBuilder: @escaping CursorBuilder<Result>,
-//						 sorts: [Database.QuerySort] = []) throws -> Future<CursorPage<Result>> {
-//		let params = req.cursorPaginationParameters()
-//
-//		return try self.paginate(cursor: params?.cursor,
-//								 cursorBuilder: cursorBuilder,
-//								 count: params?.limit ?? Result.defaultPageSize,
-//								 sorts: sorts)
-//	}
-//}
-
-fileprivate extension QueryBuilder{
-//	@discardableResult
-//	fileprivate  func filter(_ field: String, _ method: Database.QueryFilterMethod, _ value: Database.QueryFilterValue?) -> Self {
-	/// Applies a comparison filter to this query.
-	@discardableResult
-	fileprivate  func filter(_ field: String, _ method: Database.QueryFilterMethod, _ value: String?) -> Self {
-		return self
-//		let filter = QueryFilter<Result.Database>(
-//			field: QueryField(name: field),
-//			type: type,
-//			value: value
-//		)
-//		return addFilter(.single(filter))
+	private func defaultCursorBuilder(_ sorts: [KeyPathSort<Result>]) -> CursorBuilder<Result>{
+		let cursorBuilder: (Result) throws -> String = { (model: Result) in
+			var cursor: String = ""
+			for sort in sorts{
+				let value = model[keyPath: sort.keyPath]
+				cursor += try self.cursorPart(forParameter: sort.propertyName, withValue: value)
+			}
+			cursor = String(cursor.dropLast())
+			return cursor
+		}
+		return cursorBuilder
 	}
+
+
 }
