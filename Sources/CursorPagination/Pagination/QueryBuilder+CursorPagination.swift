@@ -106,7 +106,7 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 				orderedCursorParts.append(CursorPart(key: key, value: value))
 			}
 
-//			debugPrint("Cursor decoded : \(orderedCursorParts.map({$0.key + " : " + ($0.value ?? "nil")}))")
+			debugPrint("Cursor decoded : \(orderedCursorParts.map({$0.key + " : " + ($0.value ?? "nil")}))")
 			guard orderedCursorParts.count > 0 else {
 				throw Abort(.badRequest, reason: "This cursor has no parts.")
 			}
@@ -126,7 +126,7 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 				try group(Database.queryFilterRelationOr) { (or) in
 					or.group(Database.queryFilterRelationAnd){ (and) in
 						and.filter(nonDistinctQueryField, Database.queryFilterMethodEqual, nonDistinctCursorPart.value)
-						and.filter(tiebreakerSort.queryField, self.filterTiebreakerType(for: tiebreakerSort.direction), tieBreakerCursorPart.value)
+						and.filter(tiebreakerSort.queryField, self.filterMethod(for: tiebreakerSort.direction), tieBreakerCursorPart.value)
 					}
 					try or.filter(for: sorts[0], startingAt: nonDistinctCursorPart, inclusive: false)
 				}
@@ -163,7 +163,7 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 
 	}
 
-	public func filterTiebreakerType(for direction: KeyPathSortDirection<Result>, inclusive: Bool = true) -> Database.QueryFilterMethod{
+	public func filterMethod(for direction: KeyPathSortDirection<Result>, inclusive: Bool = true) -> Database.QueryFilterMethod{
 		switch (inclusive, direction){
 		case (true, .ascending):
 			return Database.queryFilterMethodGreaterThanOrEqual
@@ -181,7 +181,11 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 		let key = cursor.key
 		let field = sort.queryField
 		let direction = sort.direction
-
+		print("key: \(key)")
+		print("field: \(field)")
+		print("direction: \(direction)")
+		print("inclusive: \(inclusive)")
+		print("value: \(cursor.value)")
 		guard let value = cursor.value else{
 			switch (inclusive, direction){
 			case (false, .ascending):
@@ -191,34 +195,22 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 			return self
 		}
 
-		let nilValue: String? = nil
-		switch (inclusive, direction){
-		case (true, .ascending):
-			filter(field, Database.queryFilterMethodGreaterThanOrEqual, value)
-		case (false, .ascending):
-			filter(field, Database.queryFilterMethodGreaterThan, value)
-		case (true, .descending):
-			let idKey: String = Result.idKey.propertyName
-			if key == idKey {
-				filter(field, Database.queryFilterMethodLessThanOrEqual, value)
-			}
-			else{
-				group(Database.queryFilterRelationOr){ (or) in //Handle nullability, sort nulls to be last
-					or.filter(field, Database.queryFilterMethodLessThanOrEqual, value)
-					or.filter(field, Database.queryFilterMethodEqual, nilValue)
+		let tiebreakerMethod = filterMethod(for: direction)
+		switch(direction){
+			case .ascending:
+				filter(field, tiebreakerMethod, value)
+			case .descending:
+				let idKey: String = Result.idKey.propertyName
+				if key == idKey {
+					filter(field, tiebreakerMethod, value)
 				}
-			}
-		case (false, .descending):
-			let idKey: String = Result.idKey.propertyName
-			if key == idKey {
-				filter(field, Database.queryFilterMethodLessThan, value)
-			}
-			else{
-				group(Database.queryFilterRelationOr){ (or) in //Handle nullability, sort nulls to be last
-					or.filter(field, Database.queryFilterMethodLessThan, value)
-					or.filter(field, Database.queryFilterMethodEqual, nilValue)
+				else{
+					let nilValue: String? = nil
+					group(Database.queryFilterRelationOr){ (or) in //Handle nullability, sort nulls to be last
+						or.filter(field, tiebreakerMethod, value)
+						or.filter(field, Database.queryFilterMethodEqual, nilValue)
+					}
 				}
-			}
 		}
 		return self
 	}

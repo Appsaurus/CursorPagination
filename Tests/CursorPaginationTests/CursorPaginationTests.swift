@@ -22,13 +22,24 @@ class CursorPaginationTests: CursorPaginationTestCase {
 	//MARK: Linux Testing
 	static var allTests = [
 		("testLinuxTestSuiteIncludesAllTests", testLinuxTestSuiteIncludesAllTests),
-		("testComplexSortPagination", testComplexSortPagination),
-		("testIdSortPagination", testIdSortPagination),
-		("testBoolSortPagination", testBoolSortPagination),
-		("testStringSortPagination", testStringSortPagination),
-		("testOptionalStringSortPagination", testOptionalStringSortPagination),
-		("testDoubleSortPagination", testDoubleSortPagination),
-		("testDateSortPagination", testDateSortPagination)
+		("testEmptyTable", testEmptyTable),
+		("testLessThanPageLimit", testLessThanPageLimit),
+		("testExactlyPageLimit", testExactlyPageLimit),
+		("testDoublePageLimit", testDoublePageLimit),
+		("testPartialFinalPage", testPartialFinalPage),
+		("testIdAscendingSort", testIdAscendingSort),
+		("testIdDescendingSort", testIdDescendingSort),
+		("testBoolAscendingSort", testBoolAscendingSort),
+		("testBoolDescendingSort", testBoolDescendingSort),
+		("testStringAscendingSort", testStringAscendingSort),
+		("testStringDescendingSort", testStringDescendingSort),
+		("testDoubleAscendingSort", testDoubleAscendingSort),
+		("testDoubleDescendingSort", testDoubleDescendingSort),
+		("testDateAscendingSort", testDateAscendingSort),
+		("testDateDescendingSort", testDateDescendingSort),
+		("testOptionalStringAscendingSort", testOptionalStringAscendingSort),
+		("testOptionalStringDescendingSort", testOptionalStringDescendingSort),
+		("testComplexSortPagination", testComplexSortPagination)
 	]
 
 	func testLinuxTestSuiteIncludesAllTests(){
@@ -42,78 +53,139 @@ class CursorPaginationTests: CursorPaginationTestCase {
 	#if os(Linux)
 	var testAllEdgeCases = false //FIXME:: Setting this to true may break Linux test. Not sure why yet, just hangs.
 	#else
-	var testAllEdgeCases = false
+	var testAllEdgeCases = true
 	#endif
 
-	lazy var seedCounts = testAllEdgeCases ? [0, 1, 5, 10, 11] : [15]
-	var pageLimit = 5
+//	lazy var seedCounts = testAllEdgeCases ? [0, 1, 5, 10, 11] : [15]
+	static let seedCount = 15
+	let pageLimit = 5
 
 
 	func debugPrint(sqlLiteQuery: SQLiteQuery.FluentQuery){
 		Swift.debugPrint("QueryDescription: \(sqlLiteQuery)")
 	}
 
-	func testComplexSortPagination() throws{
-		try runTest(with: [.ascending(\.doubleField), .ascending(\.stringField)], orderTest: { (previousModel, model) -> Bool in
-			let tiebreakerCase = model.doubleField == previousModel.doubleField && model.stringField >= previousModel.stringField
-			let generalCase = model.doubleField > previousModel.doubleField
-			return generalCase || tiebreakerCase
-		})
-
-		try runTest(with: [.ascending(\.doubleField), .ascending(\.stringField), .ascending(\.optionalStringField)], orderTest: { (previousModel, model) -> Bool in
-			let generalOptionalStringCase = model.optionalStringField == nil
-					|| previousModel.optionalStringField == nil
-					|| model.optionalStringField! > previousModel.optionalStringField!
-					|| (model.optionalStringField! == previousModel.optionalStringField! && model.id! > previousModel.id!)
-			let doubleAndStringTieCase = model.doubleField == previousModel.doubleField
-				&& model.stringField == previousModel.stringField
-				&& generalOptionalStringCase
-
-			let doubleTieCase = model.doubleField == previousModel.doubleField
-				&& model.stringField > previousModel.stringField
-			let doubleCase = model.doubleField > previousModel.doubleField
-			return doubleAndStringTieCase || doubleTieCase || doubleCase
-		})
-	}
-
-	func testIdSortPagination() throws{
-
-		try runTest(with: [.ascending(\.id)], orderTest: { (previousModel, model) -> Bool in
-			return model.id! >= previousModel.id!
-		})
-		try runTest(with: [.descending(\.id)], orderTest: { (previousModel, model) -> Bool in
+	func testEmptyTable() throws{
+		try runTest(seedCount: 0, sorts: [.descending(\.id)], orderTest: { (previousModel, model) -> Bool in
 			return model.id! <= previousModel.id!
 		})
 	}
 
-	func testBoolSortPagination() throws{
+	func testLessThanPageLimit() throws{
+		try runTest(seedCount: Int(Double(pageLimit)/2.0), sorts: [.descending(\.id)], orderTest: { (previousModel, model) -> Bool in
+			return model.id! <= previousModel.id!
+		})
+	}
 
-//		try runTest(with: [.ascending(\.booleanField)], orderTest: { (previousModel, model) -> Bool in
-//			return model.booleanField >= previousModel.booleanField
-//		})
-//		try runTest(with: [.descending(\.booleanField)], orderTest: { (previousModel, model) -> Bool in
+	func testExactlyPageLimit() throws{
+		try runTest(seedCount: pageLimit, sorts: [.descending(\.id)], orderTest: { (previousModel, model) -> Bool in
+			return model.id! <= previousModel.id!
+		})
+	}
+
+	func testDoublePageLimit() throws{
+		try runTest(seedCount: pageLimit * 2, sorts: [.descending(\.id)], orderTest: { (previousModel, model) -> Bool in
+			return model.id! <= previousModel.id!
+		})
+	}
+
+	func testPartialFinalPage() throws{
+		try runTest(seedCount: (pageLimit * 2) + 1, sorts: [.descending(\.id)], orderTest: { (previousModel, model) -> Bool in
+			return model.id! <= previousModel.id!
+		})
+	}
+
+	func testIdAscendingSort() throws{
+		try runTest(sorts: [.ascending(\.id)], orderTest: { (previousModel, model) -> Bool in
+			return model.id! >= previousModel.id!
+		})
+	}
+
+	func testIdDescendingSort() throws{
+		try runTest(sorts: [.descending(\.id)], orderTest: { (previousModel, model) -> Bool in
+			return model.id! <= previousModel.id!
+		})
+	}
+
+	func testBoolAscendingSort() throws{
+		try debugPrint(models: try seedModels())
+
+		let sorts: [KeyPathSort<ExampleModel>] = [.ascending(\.booleanField)]
+		let builder = try ExampleModel.query(on: request).sortedForPagination(cursor: nil, sortFields: sorts)
+		debugPrint(sqlLiteQuery: builder.query)
+		let page = try ExampleModel.query(on: request).paginate(cursor: nil, sortFields: sorts).wait()
+		try debugPrint(models: page.data)
+		let builder2 = try ExampleModel.query(on: request).sortedForPagination(cursor: page.nextPageCursor, sortFields: sorts)
+		debugPrint(sqlLiteQuery: builder2.query)
+		let page2 = try ExampleModel.query(on: request).paginate(cursor: page.nextPageCursor, sortFields: sorts).wait()
+		try debugPrint(models: page2.data)
+
+//				try runTest(sorts: [.ascending(\.booleanField)], orderTest: { (previousModel, model) -> Bool in
+//					return true
+////					return model.booleanField >= previousModel.booleanField
+//				})
+	}
+
+	func testBoolDescendingSort() throws{
+//		try seedModels()
+//		let trueModels = try ExampleModel.query(on: request).filter(\.booleanField >= false).all().wait()
+//		try debugPrint(models: trueModels)
+
+//		try runTest(sorts: [.descending(\.booleanField)], orderTest: { (previousModel, model) -> Bool in
 //			let lh = previousModel.booleanField
 //			let rh = previousModel.booleanField
 //			return (lh == true && rh == false) || lh == rh
 //		})
 	}
 
-	func testStringSortPagination() throws {
-
-		try runTest(with: [.ascending(\.stringField)], orderTest: { (previousModel, model) -> Bool in
+	func testStringAscendingSort() throws {
+		try runTest(sorts: [.ascending(\.stringField)], orderTest: { (previousModel, model) -> Bool in
 			return model.stringField >= previousModel.stringField
 		})
-		try runTest(with: [.descending(\.stringField)], orderTest: { (previousModel, model) -> Bool in
+	}
+
+	func testStringDescendingSort() throws {
+		try runTest(sorts: [.descending(\.stringField)], orderTest: { (previousModel, model) -> Bool in
 			return model.stringField <= previousModel.stringField
 		})
 	}
 
-	func testOptionalStringSortPagination() throws {
-		try runTest(with: [.ascending(\.optionalStringField)], orderTest: { (previousModel, model) -> Bool in
+	func testDoubleAscendingSort() throws {
+		try runTest(sorts: [.ascending(\.doubleField)], orderTest: { (previousModel, model) -> Bool in
+			return  model.doubleField >= previousModel.doubleField
+		})
+	}
+
+	func testDoubleDescendingSort() throws {
+		try runTest(sorts: [.descending(\.doubleField)], orderTest: { (previousModel, model) -> Bool in
+			return model.doubleField <= previousModel.doubleField
+		})
+	}
+
+	func testDateAscendingSort() throws {
+		#if !os(Linux) //FIXME: Another wierd issue where too many tests hang on linux, can remove this or any other test and it won't hang.
+		try runTest(sorts: [.ascending(\.dateField)], orderTest: { (previousModel, model) -> Bool in
+			return  model.dateField >= previousModel.dateField
+		})
+		#endif
+	}
+	func testDateDescendingSort() throws {
+		#if !os(Linux) //FIXME: Another wierd issue where too many tests hang on linux, can remove this or any other test and it won't hang.
+		try runTest(sorts: [.descending(\.dateField)], orderTest: { (previousModel, model) -> Bool in
+			return model.dateField <= previousModel.dateField
+		})
+		#endif
+	}
+
+
+	func testOptionalStringAscendingSort() throws {
+		try runTest(sorts: [.ascending(\.optionalStringField)], orderTest: { (previousModel, model) -> Bool in
 			return optionalStringOrderTest(order: .ascending, model: model, previousModel: previousModel)
 		})
+	}
 
-		try runTest(with: [.descending(\.optionalStringField)], orderTest: { (previousModel, model) -> Bool in
+	func testOptionalStringDescendingSort() throws {
+		try runTest(sorts: [.descending(\.optionalStringField)], orderTest: { (previousModel, model) -> Bool in
 			return optionalStringOrderTest(order: .descending, model: model, previousModel: previousModel)
 		})
 	}
@@ -132,42 +204,45 @@ class CursorPaginationTests: CursorPaginationTestCase {
 		}
 	}
 
-	func testDoubleSortPagination() throws {
-		try runTest(with: [.ascending(\.doubleField)], orderTest: { (previousModel, model) -> Bool in
-			return  model.doubleField >= previousModel.doubleField
-		})
-		try runTest(with: [.descending(\.doubleField)], orderTest: { (previousModel, model) -> Bool in
-			return model.doubleField <= previousModel.doubleField
-		})
-	}
 
-	func testDateSortPagination() throws {
-		#if !os(Linux) //FIXME: Another wierd issue where too many tests hang on linux, can remove this or any other test and it won't hang.
-		try runTest(with: [.ascending(\.dateField)], orderTest: { (previousModel, model) -> Bool in
-			return  model.dateField >= previousModel.dateField
+
+	func testComplexSortPagination() throws{
+		try runTest(sorts: [.ascending(\.doubleField), .ascending(\.stringField)], orderTest: { (previousModel, model) -> Bool in
+			let tiebreakerCase = model.doubleField == previousModel.doubleField && model.stringField >= previousModel.stringField
+			let generalCase = model.doubleField > previousModel.doubleField
+			return generalCase || tiebreakerCase
 		})
-		try runTest(with: [.descending(\.dateField)], orderTest: { (previousModel, model) -> Bool in
-			return model.dateField <= previousModel.dateField
+
+		try runTest(sorts: [.ascending(\.doubleField), .ascending(\.stringField), .ascending(\.optionalStringField)], orderTest: { (previousModel, model) -> Bool in
+			let generalOptionalStringCase = model.optionalStringField == nil
+				|| previousModel.optionalStringField == nil
+				|| model.optionalStringField! > previousModel.optionalStringField!
+				|| (model.optionalStringField! == previousModel.optionalStringField! && model.id! > previousModel.id!)
+			let doubleAndStringTieCase = model.doubleField == previousModel.doubleField
+				&& model.stringField == previousModel.stringField
+				&& generalOptionalStringCase
+
+			let doubleTieCase = model.doubleField == previousModel.doubleField
+				&& model.stringField > previousModel.stringField
+			let doubleCase = model.doubleField > previousModel.doubleField
+			return doubleAndStringTieCase || doubleTieCase || doubleCase
 		})
-		#endif
 	}
 
 	func sortIds(for models: [ExampleModel]) -> [Int]{
 		return models.map({$0.id!}).sorted()
 	}
 
-	func runTest(with sorts: [KeyPathSort<ExampleModel>], orderTest: OrderTest) throws{
-		try runTest(pageFetcher: { (request, cursor, pageLimit) -> Future<CursorPage<ExampleModel>> in
+
+	func runTest(seedCount: Int = seedCount, sorts: [KeyPathSort<ExampleModel>], orderTest: OrderTest) throws{
+		try runTest(seedCount: seedCount, pageFetcher: { (request, cursor, pageLimit) -> Future<CursorPage<ExampleModel>> in
 			return try ExampleModel.paginate(on: request, cursor: cursor, count: pageLimit, sorts: sorts)
 		}, orderTest: orderTest)
 	}
-
 	typealias OrderTest = (ExampleModel, ExampleModel) -> Bool
 	typealias PageFetcher = (_ request: DatabaseConnectable, _ cursor: String?, _ count: Int) throws -> Future<CursorPage<ExampleModel>>
 
-	func runTest(pageFetcher: PageFetcher, orderTest: OrderTest) throws{
-		let seedCounts = self.seedCounts
-		for seedCount in seedCounts{
+	func runTest(seedCount: Int = seedCount, pageFetcher: PageFetcher, orderTest: OrderTest) throws{
 			let req = request
 			if testAllEdgeCases{
 				try ExampleModel.query(on: req).all().delete(on: req).wait()
@@ -214,7 +289,6 @@ class CursorPaginationTests: CursorPaginationTestCase {
 			if duplicates.count > 0{
 				XCTFail("Unexpected duplicates with ids \(duplicates)")
 			}
-		}
 	}
 
 }
