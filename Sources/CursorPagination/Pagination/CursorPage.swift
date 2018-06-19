@@ -62,6 +62,10 @@ public struct KeyPathSort<M: CursorPaginatable>{
 		return direction.querySortDirection
 	}
 
+	public var fieldIsOptional: Bool{
+		return fluentProperty.valueType is OptionalProtocol.Type
+	}
+
 	public init<T>(_ keyPath: KeyPath<M, T>, _ direction: KeyPathSortDirection<M> = .ascending){
 		self.keyPath = keyPath
 		self.direction = direction
@@ -121,3 +125,14 @@ extension KeyPath where Root: CursorPaginatable {
 //		return self
 //	}
 //}
+
+//Workaround for swift's lack of covariance and contravariance on Optional type
+//Allows for check like '<type> is OptionalProtocol' or 'isOptional(instance)
+public protocol OptionalProtocol {}
+
+extension Optional : OptionalProtocol {}
+
+public func isOptional(_ instance: Any) -> Bool {
+	return instance is OptionalProtocol
+}
+
