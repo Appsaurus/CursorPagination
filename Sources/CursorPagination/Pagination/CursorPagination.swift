@@ -9,6 +9,8 @@ import Foundation
 import Fluent
 import Vapor
 import RuntimeExtensions
+import Codability
+
 public struct OffsetPaginationParameters: Codable{
 	public let number: Int
 	public let limit: Int
@@ -44,7 +46,36 @@ extension Request{
 public typealias CursorBuilder<E: CursorPaginatable/* & QuerySupporting*/> = (E) throws -> String
 public struct CursorPart{
 	public var key: String
+	public var decodedType: Any.Type
 	public var value: String?
+	public init(key: String, value: String?, as type: Any.Type) {
+        self.key = key
+		self.value = value
+		self.decodedType = type
+    }
+
+	public func decodedValue() throws -> Encodable?{
+		guard let value = value else { return nil }
+		var anyValue: Any = value as Any
+		switch decodedType {
+		case is Bool.Type:
+			anyValue = value.bool! as Any
+		default:
+			break
+		}
+		return anyValue as? Encodable
+	}
+
+	public func anyCodableValue() throws -> AnyCodable{
+		return AnyCodable(try decodedValue())
+	}
+}
+
+func cast<E: Any>(_ object: Any, as: E.Type = E.self, orThrow error: Error) throws -> E {
+	guard let castedValue = object as? E else{
+		throw error
+	}
+	return castedValue
 }
 
 //extension QuerySort{

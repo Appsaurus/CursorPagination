@@ -108,22 +108,23 @@ class CursorPaginationTests: CursorPaginationTestCase {
 	}
 
 	func testBoolAscendingSort() throws{
-		try debugPrint(models: try seedModels())
+//		try debugPrint(models: try seedModels())
+//
+//		let sorts: [KeyPathSort<ExampleModel>] = [.ascending(\.booleanField)]
+//		let builder = try ExampleModel.query(on: request).sortedForPagination(cursor: nil, sortFields: sorts)
+//		debugPrint(sqlLiteQuery: builder.query)
+//		let page = try ExampleModel.query(on: request).paginate(cursor: nil, sortFields: sorts).wait()
+//		try debugPrint(models: page.data)
+//		let builder2 = try ExampleModel.query(on: request).sortedForPagination(cursor: page.nextPageCursor, sortFields: sorts)
+//		debugPrint(sqlLiteQuery: builder2.query)
+//		let page2 = try ExampleModel.query(on: request).paginate(cursor: page.nextPageCursor, sortFields: sorts).wait()
+//		try debugPrint(models: page2.data)
 
-		let sorts: [KeyPathSort<ExampleModel>] = [.ascending(\.booleanField)]
-		let builder = try ExampleModel.query(on: request).sortedForPagination(cursor: nil, sortFields: sorts)
-		debugPrint(sqlLiteQuery: builder.query)
-		let page = try ExampleModel.query(on: request).paginate(cursor: nil, sortFields: sorts).wait()
-		try debugPrint(models: page.data)
-		let builder2 = try ExampleModel.query(on: request).sortedForPagination(cursor: page.nextPageCursor, sortFields: sorts)
-		debugPrint(sqlLiteQuery: builder2.query)
-		let page2 = try ExampleModel.query(on: request).paginate(cursor: page.nextPageCursor, sortFields: sorts).wait()
-		try debugPrint(models: page2.data)
-
-//				try runTest(sorts: [.ascending(\.booleanField)], orderTest: { (previousModel, model) -> Bool in
-//					return true
-////					return model.booleanField >= previousModel.booleanField
-//				})
+				try runTest(sorts: [.ascending(\.booleanField)], orderTest: { (previousModel, model) -> Bool in
+					let lh = previousModel.booleanField
+					let rh = model.booleanField
+					return (lh == false && rh == true) || (lh == rh && previousModel.id! < model.id!)
+				})
 	}
 
 	func testBoolDescendingSort() throws{
@@ -131,11 +132,11 @@ class CursorPaginationTests: CursorPaginationTestCase {
 //		let trueModels = try ExampleModel.query(on: request).filter(\.booleanField >= false).all().wait()
 //		try debugPrint(models: trueModels)
 
-//		try runTest(sorts: [.descending(\.booleanField)], orderTest: { (previousModel, model) -> Bool in
-//			let lh = previousModel.booleanField
-//			let rh = previousModel.booleanField
-//			return (lh == true && rh == false) || lh == rh
-//		})
+		try runTest(sorts: [.descending(\.booleanField)], orderTest: { (previousModel, model) -> Bool in
+			let lh = previousModel.booleanField
+			let rh = model.booleanField
+			return (lh == true && rh == false) || (lh == rh && previousModel.id! < model.id!)
+		})
 	}
 
 	func testStringAscendingSort() throws {

@@ -8,6 +8,7 @@
 import Foundation
 import Fluent
 import Vapor
+import Codability
 
 ////MARK: Main public API
 extension QueryBuilder where Result: CursorPaginatable, Result.Database == Database {
@@ -94,7 +95,7 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 				throw Abort(.badRequest, reason: "That cursor does not does not match the sorts set for this query.")
 			}
 			var orderedCursorParts: [CursorPart] = []
-			for cursorPart in cursorParts{
+			for (index, cursorPart) in cursorParts.enumerated(){
 				let cursorSplit = cursorPart.split(separator: ":")
 
 				guard 1...2 ~= cursorSplit.count   else { //1 == nil value
@@ -103,10 +104,10 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 				let key: String = String(cursorSplit[0])
 
 				let value: String? = cursorSplit.count == 2 ? String(cursorSplit[1]).fromBase64()! : nil
-				orderedCursorParts.append(CursorPart(key: key, value: value))
+				orderedCursorParts.append(CursorPart(key: key, value: value, as: sorts[index].fluentProperty.valueType))
 			}
 
-			debugPrint("Cursor decoded : \(orderedCursorParts.map({$0.key + " : " + ($0.value ?? "nil")}))")
+		debugPrint("Cursor decoded : \(orderedCursorParts.map({$0.key + " : " + ("\(String(describing: $0.value))")}))")
 			guard orderedCursorParts.count > 0 else {
 				throw Abort(.badRequest, reason: "This cursor has no parts.")
 			}
@@ -121,16 +122,68 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 			}
 
 			guard orderedCursorParts.count > 2 else{//One nondistinct sort + one distinct tiebreaker sort
-				let nonDistinctCursorPart = orderedCursorParts.first!
-				let nonDistinctQueryField = sorts.first!.queryField
+				let nonDistinctSort = sorts[0]
+				let nonDistinctCursorPart = orderedCursorParts[0]
+				let nilValue: String? = nil
+				if nonDistinctSort.fieldIsOptional{
+					if nonDistinctCursorPart.value == nil && nonDistinctSort.direction == .descending{
+						try group(Database.queryFilterRelationAnd, closure: { (and) in
+							and.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, nilValue)
+							try and.filter(tiebreakerSort.queryField, self.filterMethod(for: tiebreakerSort.direction, inclusive: true), tieBreakerCursorPart.anyCodableValue())
+						})
+						return self
+					}
+
+					try group(Database.queryFilterRelationOr) { (or) in
+						if let value = nonDistinctCursorPart.value{
+							switch nonDistinctSort.direction{
+							case .ascending:
+								try or.group(Database.queryFilterRelationAnd, closure: { (and) in
+									and.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, try nonDistinctCursorPart.anyCodableValue())
+									try and.filter(tiebreakerSort.queryField, self.filterMethod(for: tiebreakerSort.direction, inclusive: true), tieBreakerCursorPart.anyCodableValue())
+								})
+								or.filter(nonDistinctSort.queryField, Database.queryFilterMethodGreaterThan, try nonDistinctCursorPart.anyCodableValue())
+							case .descending:
+								try or.group(Database.queryFilterRelationAnd, closure: { (and) in
+									and.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, try nonDistinctCursorPart.anyCodableValue())
+									try and.filter(tiebreakerSort.queryField, self.filterMethod(for: tiebreakerSort.direction, inclusive: true), tieBreakerCursorPart.anyCodableValue())
+								})
+								or.filter(nonDistinctSort.queryField, Database.queryFilterMethodLessThan, try nonDistinctCursorPart.anyCodableValue())
+								or.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, nilValue)
+							}
+						}
+						else{ //Nil nondistinct value
+							switch nonDistinctSort.direction{
+							case .ascending:
+								try or.group(Database.queryFilterRelationAnd, closure: { (and) in
+									and.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, nonDistinctCursorPart.value)
+									try and.filter(tiebreakerSort.queryField, self.filterMethod(for: tiebreakerSort.direction, inclusive: true), tieBreakerCursorPart.anyCodableValue())
+								})
+								or.filter(nonDistinctSort.queryField, Database.queryFilterMethodNotEqual, nonDistinctCursorPart.value)
+							case .descending:
+								assertionFailure()
+//								try or.group(Database.queryFilterRelationAnd, closure: { (and) in
+//									and.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, nonDistinctCursorPart.value)
+//									try and.filter(tiebreakerSort.queryField, self.filterMethod(for: .descending, inclusive: true), tieBreakerCursorPart.anyCodableValue())
+//								})
+//								or.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, nilValue)
+							}
+
+						}
+					}
+					return self
+				}
+
+				//Non optional
 				try group(Database.queryFilterRelationOr) { (or) in
-					or.group(Database.queryFilterRelationAnd){ (and) in
-						and.filter(nonDistinctQueryField, Database.queryFilterMethodEqual, nonDistinctCursorPart.value)
-						and.filter(tiebreakerSort.queryField, self.filterMethod(for: tiebreakerSort.direction), tieBreakerCursorPart.value)
+					try or.group(Database.queryFilterRelationAnd){ (and) in
+						and.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, try nonDistinctCursorPart.anyCodableValue())
+						try and.filter(for: tiebreakerSort, startingAt: tieBreakerCursorPart, inclusive: true)
 					}
 					try or.filter(for: sorts[0], startingAt: nonDistinctCursorPart, inclusive: false)
 				}
 				return self
+
 			}
 
 			//There could be n nondistinct sorts + 1 final tiebreaker sort.
@@ -154,7 +207,7 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 								sortStack.removeLast()
 								continue
 							}
-							and.filter(sortStack[i].queryField, Database.queryFilterMethodEqual, part.value)
+							and.filter(sortStack[i].queryField, Database.queryFilterMethodEqual, try part.anyCodableValue())
 						}
 					}
 				}
@@ -178,40 +231,8 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 
 	@discardableResult
 	public func filter(for sort: KeyPathSort<Result>, startingAt cursor: CursorPart, inclusive: Bool = true) throws -> QueryBuilder<Database, Result>{
-		let key = cursor.key
-		let field = sort.queryField
-		let direction = sort.direction
-		print("key: \(key)")
-		print("field: \(field)")
-		print("direction: \(direction)")
-		print("inclusive: \(inclusive)")
-		print("value: \(cursor.value)")
-		guard let value = cursor.value else{
-			switch (inclusive, direction){
-			case (false, .ascending):
-				filter(field, Database.queryFilterMethodNotEqual, cursor.value) //Include values that are not null
-			default: break //Do nothing, nulls are naturally handled by the sort
-			}
-			return self
-		}
-
-		let tiebreakerMethod = filterMethod(for: direction)
-		switch(direction){
-			case .ascending:
-				filter(field, tiebreakerMethod, value)
-			case .descending:
-				let idKey: String = Result.idKey.propertyName
-				if key == idKey {
-					filter(field, tiebreakerMethod, value)
-				}
-				else{
-					let nilValue: String? = nil
-					group(Database.queryFilterRelationOr){ (or) in //Handle nullability, sort nulls to be last
-						or.filter(field, tiebreakerMethod, value)
-						or.filter(field, Database.queryFilterMethodEqual, nilValue)
-					}
-				}
-		}
+		let method = filterMethod(for: sort.direction, inclusive: inclusive)
+		filter(sort.queryField, method, try cursor.anyCodableValue())
 		return self
 	}
 	public func ensureUniqueSort(sorts: inout [KeyPathSort<Result>]) throws {
@@ -237,11 +258,11 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 			switch value{
 			case let date as Date:
 				value = date.timeIntervalSince1970 as Any
-				fallthrough
-			default:
-				let stringValue = "\(value)".toBase64()
-				return "\(name):\(stringValue),"
+				break
+			default: break
 			}
+			let stringValue = "\(value)".toBase64()
+			return "\(name):\(stringValue),"
 		}
 	}
 
