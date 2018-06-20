@@ -39,7 +39,8 @@ class CursorPaginationTests: CursorPaginationTestCase {
 		("testDateDescendingSort", testDateDescendingSort),
 		("testOptionalStringAscendingSort", testOptionalStringAscendingSort),
 		("testOptionalStringDescendingSort", testOptionalStringDescendingSort),
-		("testComplexSortPagination", testComplexSortPagination)
+		("testCompoundNonUniqueSort", testCompoundNonUniqueSort),
+		("testComplexSort", testComplexSort)
 	]
 
 	func testLinuxTestSuiteIncludesAllTests(){
@@ -207,13 +208,15 @@ class CursorPaginationTests: CursorPaginationTestCase {
 
 
 
-	func testComplexSortPagination() throws{
+	func testCompoundNonUniqueSort() throws{
 		try runTest(sorts: [.ascending(\.doubleField), .ascending(\.stringField)], orderTest: { (previousModel, model) -> Bool in
 			let tiebreakerCase = model.doubleField == previousModel.doubleField && model.stringField >= previousModel.stringField
 			let generalCase = model.doubleField > previousModel.doubleField
 			return generalCase || tiebreakerCase
 		})
+	}
 
+	func testComplexSort() throws{
 		try runTest(sorts: [.ascending(\.doubleField), .ascending(\.stringField), .ascending(\.optionalStringField)], orderTest: { (previousModel, model) -> Bool in
 			let generalOptionalStringCase = model.optionalStringField == nil
 				|| previousModel.optionalStringField == nil
@@ -316,7 +319,7 @@ fileprivate extension Array where Element: Comparable & Hashable {
 
 
 
-fileprivate extension Future where T: Collection, T.Element: Model, T.Element.Database: QuerySupporting{
+fileprivate extension Future where T: Collection, T.Element: Model{
 	fileprivate func delete(on conn: DatabaseConnectable) -> Future<Void>{
 		return flatMap(to: Void.self) { elements in
 			return elements.delete(on: conn)
@@ -324,7 +327,7 @@ fileprivate extension Future where T: Collection, T.Element: Model, T.Element.Da
 	}
 }
 
-fileprivate extension Collection where Element: Model, Element.Database: QuerySupporting{
+fileprivate extension Collection where Element: Model{
 	fileprivate func delete(on conn: DatabaseConnectable)  -> Future<Void>{
 		return map { $0.delete(on: conn) }.flatten(on: conn)
 	}

@@ -46,6 +46,11 @@ class CursorPaginationTestCase: FluentTestAppTestCase {
 
 	open override func configureApplication(_ config: inout Config, _ env: inout Environment, _ services: inout Services) throws {
 		try super.configureApplication(&config, &env, &services)
+
+		//SQLLite friendly dates
+		CodableDefaults.jsonDecoder = JSONDecoder(.secondsSince1970)
+		CodableDefaults.jsonEncoder = JSONEncoder(.secondsSince1970)
+
 		/// Create default content config
 		var contentConfig = ContentConfig.default()
 

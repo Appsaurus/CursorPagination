@@ -105,79 +105,24 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 				throw Abort(.badRequest, reason: "This cursor has no parts.")
 			}
 
-			guard let tieBreakerCursorPart = orderedCursorParts.last, let tiebreakerSort: KeyPathSort<Result> = sorts.last, tieBreakerCursorPart.key == tiebreakerSort.propertyName else{
+			guard let tiebreakerCursorPart = orderedCursorParts.last, let tiebreakerSort: KeyPathSort<Result> = sorts.last, tiebreakerCursorPart.key == tiebreakerSort.propertyName else{
 				throw Abort(.badRequest, reason: "Improperly formatted pagination query. Last cursor part does not match final sort.")
 			}
 
 			guard orderedCursorParts.count > 1 else{ //Must be a unique, single field sort. So, we only need to get the values greater than or equal to the cursor fields value.
-				try filter(for: tiebreakerSort, startingAt: tieBreakerCursorPart)
+				try filter(for: tiebreakerSort, startingAt: tiebreakerCursorPart)
 				return self
 			}
 
-			guard orderedCursorParts.count > 2 else{//One nondistinct sort + one distinct tiebreaker sort
-				let nonDistinctSort = sorts[0]
-				let nonDistinctCursorPart = orderedCursorParts[0]
-				let nilValue: String? = nil
-				if nonDistinctSort.fieldIsOptional{
-					if nonDistinctCursorPart.value == nil && nonDistinctSort.direction == .descending{
-						try group(Database.queryFilterRelationAnd, closure: { (and) in
-							and.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, nilValue)
-							and.filter(tiebreakerSort.queryField, self.filterMethod(for: tiebreakerSort.direction, inclusive: true), tieBreakerCursorPart.value)
-						})
-						return self
-					}
-
-					try group(Database.queryFilterRelationOr) { (or) in
-						if let value = nonDistinctCursorPart.value{
-							switch nonDistinctSort.direction{
-							case .ascending:
-								or.group(Database.queryFilterRelationAnd, closure: { (and) in
-									and.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, value)
-									and.filter(tiebreakerSort.queryField, self.filterMethod(for: tiebreakerSort.direction, inclusive: true), tieBreakerCursorPart.value)
-								})
-								or.filter(nonDistinctSort.queryField, Database.queryFilterMethodGreaterThan, value)
-							case .descending:
-								try or.group(Database.queryFilterRelationAnd, closure: { (and) in
-									and.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, value)
-									and.filter(tiebreakerSort.queryField, self.filterMethod(for: tiebreakerSort.direction, inclusive: true), tieBreakerCursorPart.value)
-								})
-								or.filter(nonDistinctSort.queryField, Database.queryFilterMethodLessThan, value)
-								or.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, nilValue)
-							}
-						}
-						else{ //Nil nondistinct value
-							switch nonDistinctSort.direction{
-							case .ascending:
-								or.group(Database.queryFilterRelationAnd, closure: { (and) in
-									and.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, nonDistinctCursorPart.value)
-									and.filter(tiebreakerSort.queryField, self.filterMethod(for: tiebreakerSort.direction, inclusive: true), tieBreakerCursorPart.value)
-								})
-								or.filter(nonDistinctSort.queryField, Database.queryFilterMethodNotEqual, nonDistinctCursorPart.value)
-							case .descending:
-								assertionFailure()
-//								try or.group(Database.queryFilterRelationAnd, closure: { (and) in
-//									and.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, nonDistinctCursorPart.value)
-//									try and.filter(tiebreakerSort.queryField, self.filterMethod(for: .descending, inclusive: true), tieBreakerCursorPart.value)
-//								})
-//								or.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, nilValue)
-							}
-
-						}
-					}
-					return self
-				}
-
-				//Non optional
-				try group(Database.queryFilterRelationOr) { (or) in
-					try or.group(Database.queryFilterRelationAnd){ (and) in
-						and.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, nonDistinctCursorPart.value)
-						try and.filter(for: tiebreakerSort, startingAt: tieBreakerCursorPart, inclusive: true)
-					}
-					try or.filter(for: sorts[0], startingAt: nonDistinctCursorPart, inclusive: false)
-				}
-				return self
-
-			}
+//			guard orderedCursorParts.count > 2 else{//One nondistinct sort + one distinct tiebreaker sort
+//				let nonDistinctSort = sorts[0]
+//				let nonDistinctCursorPart = orderedCursorParts[0]
+//				return try filterForOptional(nonDistinctSort: nonDistinctSort,
+//								  nonDistinctCursorPart: nonDistinctCursorPart,
+//								  tiebreakerSort: tiebreakerSort,
+//								  tiebreakerCursorPart: tiebreakerCursorPart)
+//
+//			}
 
 			//There could be n nondistinct sorts + 1 final tiebreaker sort.
 			//We must account for tiebreaks on each nondistinct sort.
@@ -185,6 +130,19 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 				var cursorPartStack = orderedCursorParts
 				var sortStack = sorts
 				while cursorPartStack.count > 0{
+					guard cursorPartStack.count != 2 else{
+						let nonDistinctSort = sortStack[0]
+						let nonDistinctCursorPart = cursorPartStack[0]
+						let tiebreakerSort = sortStack[1]
+						let tiebreakerCursorPart = cursorPartStack[1]
+						try or.filterForOptional(nonDistinctSort: nonDistinctSort,
+												 nonDistinctCursorPart: nonDistinctCursorPart,
+												 tiebreakerSort: tiebreakerSort,
+												 tiebreakerCursorPart: tiebreakerCursorPart)
+						cursorPartStack.removeLast()
+						sortStack.removeLast()
+						continue
+					}
 					try or.group(Database.queryFilterRelationAnd){ (and) in
 						let lastIndex = cursorPartStack.count - 1
 						for i in 0...lastIndex{
@@ -207,6 +165,69 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 			}
 			return self
 
+	}
+
+
+	@discardableResult
+	public func filterForOptional(nonDistinctSort: KeyPathSort<Result>,
+								  nonDistinctCursorPart: CursorPart,
+								  tiebreakerSort: KeyPathSort<Result>,
+								  tiebreakerCursorPart: CursorPart) throws -> QueryBuilder<Database, Result>{
+				let nilValue: String? = nil
+				if nonDistinctSort.fieldIsOptional{
+					if nonDistinctCursorPart.value == nil && nonDistinctSort.direction == .descending{
+						 group(Database.queryFilterRelationAnd, closure: { (and) in
+							and.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, nilValue)
+							and.filter(tiebreakerSort.queryField, self.filterMethod(for: tiebreakerSort.direction, inclusive: true), tiebreakerCursorPart.value)
+						})
+						return self
+					}
+
+					group(Database.queryFilterRelationOr) { (or) in
+						if let value = nonDistinctCursorPart.value{
+							or.group(Database.queryFilterRelationAnd, closure: { (and) in
+								and.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, value)
+								and.filter(tiebreakerSort.queryField, self.filterMethod(for: tiebreakerSort.direction, inclusive: true), tiebreakerCursorPart.value)
+							})
+							switch nonDistinctSort.direction{
+							case .ascending:
+								or.filter(nonDistinctSort.queryField, Database.queryFilterMethodGreaterThan, value)
+							case .descending:
+								or.filter(nonDistinctSort.queryField, Database.queryFilterMethodLessThan, value)
+								or.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, nilValue)
+							}
+						}
+						else{ //Nil nondistinct value
+							switch nonDistinctSort.direction{
+							case .ascending:
+								or.group(Database.queryFilterRelationAnd, closure: { (and) in
+									and.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, nonDistinctCursorPart.value)
+									and.filter(tiebreakerSort.queryField, self.filterMethod(for: tiebreakerSort.direction, inclusive: true), tiebreakerCursorPart.value)
+								})
+								or.filter(nonDistinctSort.queryField, Database.queryFilterMethodNotEqual, nonDistinctCursorPart.value)
+							case .descending:
+								assertionFailure()
+//								try or.group(Database.queryFilterRelationAnd, closure: { (and) in
+//									and.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, nonDistinctCursorPart.value)
+//									try and.filter(tiebreakerSort.queryField, self.filterMethod(for: .descending, inclusive: true), tiebreakerCursorPart.value)
+//								})
+//								or.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, nilValue)
+							}
+
+						}
+					}
+					return self
+				}
+
+				//Non optional
+				try group(Database.queryFilterRelationOr) { (or) in
+					try or.group(Database.queryFilterRelationAnd){ (and) in
+						and.filter(nonDistinctSort.queryField, Database.queryFilterMethodEqual, nonDistinctCursorPart.value)
+						try and.filter(for: tiebreakerSort, startingAt: tiebreakerCursorPart, inclusive: true)
+					}
+					try or.filter(for: nonDistinctSort, startingAt: nonDistinctCursorPart, inclusive: false)
+				}
+				return self
 	}
 
 	public func filterMethod(for direction: KeyPathSortDirection<Result>, inclusive: Bool = true) -> Database.QueryFilterMethod{

@@ -16,12 +16,6 @@ public struct CursorPage<E: CursorPaginatable>: Content {
 	public let remaining: Int
 }
 
-//extension KeyPath where Root: CursorPaginatable{
-//
-//	public func keyPathSort(_ direction: Root.Database.QuerySortDirection = Root.Database.querySortDirectionAscending) -> KeyPathSort<Root>{
-//		return KeyPathSort<Root>.sort(self, direction)
-//	}
-//}
 extension KeyPath where Root: Model{
 
 	public func querySort(_ direction: Root.Database.QuerySortDirection = Root.Database.querySortDirectionAscending)-> Root.Database.QuerySort{
@@ -36,7 +30,7 @@ extension KeyPath where Root: Model{
 	}
 
 	public var propertyName: String{
-		return fluentProperty.path.joined(separator: "_")
+		return fluentProperty.name
 	}
 }
 
@@ -51,13 +45,28 @@ public enum KeyPathSortDirection<M: CursorPaginatable>{
 		}
 	}
 }
+extension FluentProperty{
+	public var name: String{
+		return path.joined(separator: ".")
+	}
+}
 public struct KeyPathSort<M: CursorPaginatable>{
 	public let keyPath:  PartialKeyPath<M>
 	public let direction: KeyPathSortDirection<M>
-	public var propertyName: String
 	public var fluentProperty: FluentProperty
-	public var querySort: M.Database.QuerySort
-	public var queryField: M.Database.QueryField
+
+	public var propertyName: String{
+		return fluentProperty.name
+	}
+
+	public var querySort: M.Database.QuerySort{
+		return M.Database.querySort(queryField, direction.querySortDirection)
+	}
+
+	public var queryField: M.Database.QueryField{
+		return M.Database.queryField(fluentProperty)
+	}
+
 	public var querySortDirection: M.Database.QuerySortDirection{
 		return direction.querySortDirection
 	}
@@ -70,9 +79,6 @@ public struct KeyPathSort<M: CursorPaginatable>{
 		self.keyPath = keyPath
 		self.direction = direction
 		self.fluentProperty = keyPath.fluentProperty
-		self.propertyName = keyPath.propertyName
-		self.querySort = M.Database.querySort(keyPath.queryField, direction.querySortDirection)
-		self.queryField = keyPath.queryField
 	}
 
 	public static func sort<M: Model, T>(_ keyPath: KeyPath<M, T>, _ direction: KeyPathSortDirection<M> = .ascending) -> KeyPathSort<M>{
@@ -101,38 +107,8 @@ extension KeyPath where Root: CursorPaginatable {
 	}
 }
 
-//public protocol CursorPaginationSortResolvable{
-//	associatedtype M: CursorPaginatable
-//	func toCursorPaginationSort() throws -> CursorPaginationSort<M>
-//}
-//
-//extension CursorPaginationSortResolvable{
-//	public static func descending<T>(_ keyPath: KeyPath<M, T>) throws -> CursorPaginationSort<M>{
-//		return try keyPath.descendingSort()
-//	}
-//}
-//
-//extension KeyPath: CursorPaginationSortResolvable where Root: CursorPaginatable{
-//	public typealias M = Root
-//
-//	public func toCursorPaginationSort() throws -> CursorPaginationSort<M> {
-//		return try sort()
-//	}
-//}
-//
-//extension CursorPaginationSort: CursorPaginationSortResolvable{
-//	public func toCursorPaginationSort() throws -> CursorPaginationSort<M> {
-//		return self
-//	}
-//}
-
-//Workaround for swift's lack of covariance and contravariance on Optional type
-//Allows for check like '<type> is OptionalProtocol' or 'isOptional(instance)
-public protocol OptionalProtocol {}
-
+////Workaround for swift's lack of covariance and contravariance on Optional type
+////Allows for check like '<type> is OptionalProtocol' or 'isOptional(instance)
+fileprivate protocol OptionalProtocol {}
 extension Optional : OptionalProtocol {}
-
-public func isOptional(_ instance: Any) -> Bool {
-	return instance is OptionalProtocol
-}
 
