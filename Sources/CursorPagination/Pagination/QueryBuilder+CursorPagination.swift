@@ -301,7 +301,8 @@ extension String{
 		guard let data = data(using: .utf8) else{
 			throw EncodingError.invalidValue(self, EncodingError.Context.init(codingPath: [], debugDescription: "Unable to convert string to utf8 data."))
 		}
-		guard let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [AnyObject] else {
+
+		guard let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [Any] else {
 			throw EncodingError.invalidValue(self, EncodingError.Context.init(codingPath: [], debugDescription: "Unable to string to array of dictionaries."))
 		}
 		return jsonObject.map { $0 as! [String: Any] }

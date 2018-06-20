@@ -10,6 +10,8 @@ import Fluent
 import Vapor
 import RuntimeExtensions
 import Codability
+import CodableExtended
+
 public struct CursorPart: Codable{
 	public var field: String
 	public var value: AnyCodable?
@@ -49,53 +51,16 @@ public struct CursorPart: Codable{
 		}
 
 	}
-
-
-
-
-
-	//	public func decodedValue() throws -> Encodable?{
-	//		guard let value = value else { return nil }
-	//		var anyValue: Any = value as Any
-	//		switch decodedType {
-	//		case is Bool.Type:
-	//			anyValue = value.bool! as Any
-	//		default:
-	//			break
-	//		}
-	//		return anyValue as? Encodable
-	//	}
 }
-//public struct CursorPart{
-//	public var key: String
-//	public var decodedType: Any.Type
-//	public var value: String?
-//	public init(key: String, value: String?, as type: Any.Type) {
-//        self.key = key
-//		self.value = value
-//		self.decodedType = type
-//    }
-//
-//	public func decodedValue() throws -> Encodable?{
-//		guard let value = value else { return nil }
-//		var anyValue: Any = value as Any
-//		switch decodedType {
-//		case is Bool.Type:
-//			anyValue = value.bool! as Any
-//		default:
-//			break
-//		}
-//		return anyValue as? Encodable
-//	}
-//
-//	public func anyCodableValue() throws -> AnyCodable{
-//		return AnyCodable(try decodedValue())
-//	}
-//}
 
-func cast<E: Any>(_ object: Any, as: E.Type = E.self, orThrow error: Error) throws -> E {
-	guard let castedValue = object as? E else{
-		throw error
+public extension String{
+	public func toCursorParts(isBase64Encoded: Bool = true) throws -> [CursorPart]{
+		guard let decodedCursor = isBase64Encoded ? fromBase64() : self else{
+			throw Abort(.badRequest, reason: "Expected cursor to be a base64 encoded string, received \(self).")
+		}
+		print("decodedCursor \(decodedCursor)")
+		let orderedCursorPartDictionaries: [AnyCodableDictionary] = try decodedCursor.arrayOfAnyCodableDictionariesFromJSONString()
+		print("orderedCursorPartDictionaries \(orderedCursorPartDictionaries)")
+		return try orderedCursorPartDictionaries.map({try CursorPart.decode(fromJSON: try $0.encodeAsJSONData())})
 	}
-	return castedValue
 }
