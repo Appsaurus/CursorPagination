@@ -192,7 +192,7 @@ class CursorPaginationTests: CursorPaginationTestCase {
 		})
 	}
 
-	internal func optionalStringOrderTest(order: KeyPathSortDirection<ExampleModel>, model: ExampleModel, previousModel: ExampleModel) -> Bool{
+	internal func optionalStringOrderTest(order: CursorSortDirection, model: ExampleModel, previousModel: ExampleModel) -> Bool{
 
 		let allNilCase = (model.optionalStringField == nil && previousModel.optionalStringField == nil)
 
@@ -238,7 +238,7 @@ class CursorPaginationTests: CursorPaginationTestCase {
 	}
 
 
-	func runTest(seedCount: Int = seedCount, sorts: [KeyPathSort<ExampleModel>], orderTest: OrderTest) throws{
+	func runTest(seedCount: Int = seedCount, sorts: [CursorSort<ExampleModel>], orderTest: OrderTest) throws{
 		try runTest(seedCount: seedCount, pageFetcher: { (request, cursor, pageLimit) -> Future<CursorPage<ExampleModel>> in
 			return try ExampleModel.paginate(on: request, cursor: cursor, count: pageLimit, sorts: sorts)
 		}, orderTest: orderTest)

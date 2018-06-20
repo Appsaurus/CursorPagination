@@ -13,12 +13,12 @@ import Vapor
 public protocol CursorPaginatable: Model {
 	static var defaultPageSize: Int { get }
 	static var maxPageSize: Int? { get }
-	static var defaultPageSorts: [KeyPathSort<Self>] { get }
+	static var defaultPageSorts: [CursorSort<Self>] { get }
 }
 
 extension CursorPaginatable{
 
-	public static var defaultPageSorts: [KeyPathSort<Self>] {
+	public static var defaultPageSorts: [CursorSort<Self>] {
 		return [createdAtKey?.descendingSort ?? idKey.ascendingSort]
 	}
 	public static var defaultPageSize: Int {
@@ -28,10 +28,6 @@ extension CursorPaginatable{
 	public static var maxPageSize: Int? {
 		return nil
 	}
-}
-
-extension QueryBuilder where Result: CursorPaginatable, Result.Database == Database {
-	//You implementation here
 }
 
 extension CursorPaginatable {
@@ -46,35 +42,20 @@ extension CursorPaginatable {
 	public static func paginate(on conn: DatabaseConnectable,
 								cursor: String?,
 								count: Int = defaultPageSize,
-								sorts: [KeyPathSort<Self>]) throws -> Future<CursorPage<Self>> {
+								sorts: [CursorSort<Self>]) throws -> Future<CursorPage<Self>> {
 		return try query(on: conn).paginate(cursor: cursor, count: count, sortFields: sorts)
 	}
 
 	public static func paginate(request: Request,
-								sorts: [KeyPathSort<Self>] = []) throws -> Future<CursorPage<Self>> {
+								sorts: [CursorSort<Self>] = []) throws -> Future<CursorPage<Self>> {
 		let params = request.cursorPaginationParameters()
 		return try paginate(on: request, cursor: params?.cursor, sorts: sorts)
 	}
 
 	public static func paginate(request: Request,
-								sorts: KeyPathSort<Self>...) throws -> Future<CursorPage<Self>> {
+								sorts: CursorSort<Self>...) throws -> Future<CursorPage<Self>> {
 		return try paginate(request: request, sorts: sorts)
 	}
-
-
-//	public static func paginate(request: Request,
-//								cursorBuilder: @escaping CursorBuilder<Self>,
-//								sorts: [Database.QuerySort] = []) throws -> Future<CursorPage<Self>> {
-//		let params = request.cursorPaginationParameters()
-//
-//		return try self.query(on: request).paginate(cursor: params?.cursor,
-//													cursorBuilder: cursorBuilder,
-//													count: params?.limit ?? Self.defaultPageSize,
-//													sorts: sorts)
-//	}
-
-
-
 }
 
 
