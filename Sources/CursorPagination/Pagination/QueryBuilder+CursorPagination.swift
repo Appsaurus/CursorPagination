@@ -39,14 +39,13 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 		let copy = self.query
 		let total: Future<Int> = self.count()
 		self.query = copy
-		//Fetch our data plus the first item of the next page
-		let limitIncludingNextItem = count + 1
-		let data: Future<[Result]> = query.range(...limitIncludingNextItem).all()
+
+		let data: Future<[Result]> = query.range(...count).all()
 		return map(to: CursorPage<Result>.self, data, total) { data, total in
 
 			var data = data
 			var nextPageCursor: String? = nil
-			if data.count == limitIncludingNextItem, let nextFirstItem: Result = data.last{
+			if data.count == count + 1, let nextFirstItem: Result = data.last{
 				nextPageCursor = "\(try cursorBuilder(nextFirstItem).toBase64())"
 				//Don't actually want to return this value yet, just getting its data to build the next cursor
 				data.remove(at: data.count - 1)

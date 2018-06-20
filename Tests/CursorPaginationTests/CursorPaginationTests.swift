@@ -13,7 +13,7 @@ import Fluent
 import HTTP
 import CodableExtended
 import CursorPagination
-import SQLite
+import FluentSQLite
 
 
 
@@ -61,7 +61,7 @@ class CursorPaginationTests: CursorPaginationTestCase {
 	let pageLimit = 5
 
 
-	func debugPrint(sqlLiteQuery: SQLiteQuery.FluentQuery){
+	func debugPrint(sqlLiteQuery: FluentSQLiteQuery){
 		Swift.debugPrint("QueryDescription: \(sqlLiteQuery)")
 	}
 
