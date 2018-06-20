@@ -277,13 +277,12 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 	private func defaultCursorBuilder(_ sorts: [CursorSort<Result>]) throws -> CursorBuilder<Result>{
 		let cursorBuilder: (Result) throws -> String = { (model: Result) in
 			let cursorParts = sorts.map({ (sort) -> CursorPart in
-				var value: Any = model[keyPath: sort.keyPath]
-				print("Key: \(sort.propertyName)")
-				print("Part Value: \(value)")
-				return CursorPart(key: sort.propertyName, value: value)
+				let value: Any = model[keyPath: sort.keyPath]
+//				print("Key: \(sort.propertyName)")
+//				print("Part Value: \(value)")
+				return CursorPart(key: sort.propertyName, value: value, direction: sort.direction)
 			})
-			        print("cursorParts: \(cursorParts)")
-			let data = try cursorParts.encodeAsJSONData()
+			print("cursorParts: \(cursorParts)")
 			return try cursorParts.encodeAsJSONString()
 		}
 		return cursorBuilder
