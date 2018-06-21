@@ -12,7 +12,7 @@ import Vapor
 
 
 public struct CursorSort<M: CursorPaginatable>{
-	public let keyPath:  PartialKeyPath<M>
+	public var keyPath:  PartialKeyPath<M>?
 	public let direction: CursorSortDirection
 	public var fluentProperty: FluentProperty
 
@@ -42,6 +42,14 @@ public struct CursorSort<M: CursorPaginatable>{
 		self.fluentProperty = .keyPath(keyPath)
 	}
 
+	public init(_ cursorPart: CursorPart) throws{
+		self.direction = cursorPart.direction
+		guard let property = try M.reflectProperties().first(where: {$0.path.joined(separator: ".") == cursorPart.field}) else{
+			throw Abort(.badRequest, reason: "Cursor part contained a field that does not map to this model.")
+		}
+		self.fluentProperty = FluentProperty.reflected(property, rootType: M.self)
+	}
+
 	public static func sort<M: Model, T>(_ keyPath: KeyPath<M, T>, _ direction: CursorSortDirection = .ascending) -> CursorSort<M>{
 		return CursorSort<M>(keyPath, direction)
 	}
@@ -55,9 +63,14 @@ public struct CursorSort<M: CursorPaginatable>{
 	}
 }
 
-public enum CursorSortDirection: String, Codable{
+public enum CursorSortDirection: String, ExpressibleByStringLiteral, Codable{
 
 	case ascending, descending
+
+	public init(stringLiteral value: String) {
+		self = CursorSortDirection.init(rawValue: value)!
+	}
+
 	public func querySortDirection<M: CursorPaginatable>(modelType: M.Type = M.self) -> M.Database.QuerySortDirection{
 		switch self{
 		case .ascending:

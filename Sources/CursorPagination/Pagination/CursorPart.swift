@@ -59,7 +59,7 @@ public extension String{
 			throw Abort(.badRequest, reason: "Expected cursor to be a base64 encoded string, received \(self).")
 		}
 		print("decodedCursor \(decodedCursor)")
-		let orderedCursorPartDictionaries: [AnyCodableDictionary] = try decodedCursor.arrayOfAnyCodableDictionariesFromJSONString()
+		let orderedCursorPartDictionaries: [AnyCodableDictionary] = try decodedCursor.deserializeJSONAsArrayOfAnyCodableDictionaries()
 		print("orderedCursorPartDictionaries \(orderedCursorPartDictionaries)")
 		return try orderedCursorPartDictionaries.map({try CursorPart.decode(fromJSON: try $0.encodeAsJSONData())})
 	}

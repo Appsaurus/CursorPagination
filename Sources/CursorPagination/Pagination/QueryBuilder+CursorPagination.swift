@@ -10,7 +10,7 @@ import Fluent
 import Vapor
 import Codability
 import CodableExtended
-
+import RuntimeExtensions
 public typealias CursorBuilder<E: CursorPaginatable> = (E) throws -> String
 
 ////MARK: Main public API
@@ -63,8 +63,7 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 	}
 	
 	
-	public func sortedForPagination(cursor: String?,
-									sortFields: [CursorSort<Result>]) throws -> QueryBuilder<Database, Result> {
+	public func sortedForPagination(cursor: String?, sortFields: [CursorSort<Result>]) throws -> QueryBuilder<Database, Result> {
 		var sorts = sortFields
 		try ensureUniqueSort(sorts: &sorts)
 		return try sortedForPagination(cursor: cursor, cursorBuilder: defaultCursorBuilder(sorts), sorts: sorts)
@@ -139,8 +138,7 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 	
 	
 	@discardableResult
-	public func filterForOptional(nonDistinctFilter: CursorFilterBuilder<Result>,
-								  tieBreakerFilter: CursorFilterBuilder<Result>) throws -> QueryBuilder<Database, Result>{
+	public func filterForOptional(nonDistinctFilter: CursorFilterBuilder<Result>, tieBreakerFilter: CursorFilterBuilder<Result>) throws -> QueryBuilder<Database, Result>{
 		
 		let nonDistinctSort: CursorSort<Result> = nonDistinctFilter.sort
 		let nonDistinctCursorPart: CursorPart = nonDistinctFilter.cursorPart
@@ -215,7 +213,8 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 		if sorts.count == 0 {
 			sorts.append(contentsOf: Result.defaultPageSorts)
 		}
-		if sorts.count == 0 || sorts.last?.keyPath != Result.idKey{
+		let property: FluentProperty = .keyPath(Result.idKey)
+		if sorts.count == 0 || sorts.last?.propertyName != property.name{
 			//Use id for tiebreakers on nonunique sorts //TODO: Check schema for uniqueness instead of always applying id as tiebreaker
 			sorts.append(Result.idKey.ascendingSort)
 		}
@@ -224,8 +223,8 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 	
 	private func defaultCursorBuilder(_ sorts: [CursorSort<Result>]) throws -> CursorBuilder<Result>{
 		let cursorBuilder: (Result) throws -> String = { (model: Result) in
-			let cursorParts = sorts.map({ (sort) -> CursorPart in
-				let value: Any = model[keyPath: sort.keyPath]
+			let cursorParts = try sorts.map({ (sort) -> CursorPart in
+				let value: Any = sort.keyPath != nil ? model[keyPath: sort.keyPath!] : try RuntimeExtensions.get(sort.propertyName, from: model)
 				//				print("Key: \(sort.propertyName)")
 				//				print("Part Value: \(value)")
 				return CursorPart(key: sort.propertyName, value: value, direction: sort.direction)
@@ -234,26 +233,5 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 			return try cursorParts.encodeAsJSONString()
 		}
 		return cursorBuilder
-	}
-}
-
-
-
-
-
-extension String{
-	func arrayOfDictionariesFromJSONString() throws -> [AnyDictionary] {
-		guard let data = data(using: .utf8) else{
-			throw EncodingError.invalidValue(self, EncodingError.Context.init(codingPath: [], debugDescription: "Unable to convert string to utf8 data."))
-		}
-		
-		guard let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [Any] else {
-			throw EncodingError.invalidValue(self, EncodingError.Context.init(codingPath: [], debugDescription: "Unable to string to array of dictionaries."))
-		}
-		return jsonObject.map { $0 as! [String: Any] }
-	}
-	
-	func arrayOfAnyCodableDictionariesFromJSONString() throws -> [AnyCodableDictionary]{
-		return try arrayOfDictionariesFromJSONString().map({try $0.toAnyCodableDictionary()})
 	}
 }
