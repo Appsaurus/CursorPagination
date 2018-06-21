@@ -30,7 +30,7 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 		try ensureUniqueSort(sorts: &sorts)
 		return try paginate(cursor: cursor, cursorBuilder: defaultCursorBuilder(sorts), count: count, sorts: sorts)
 	}
-
+	
 	public func paginate(cursor: String?,
 						 cursorBuilder: @escaping CursorBuilder<Result>,
 						 count: Int = 20,
@@ -38,14 +38,14 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 		var sorts = sorts
 		try ensureUniqueSort(sorts: &sorts)
 		let query = try sortedForPagination(cursor: cursor, cursorBuilder: cursorBuilder, sorts: sorts)
-
+		
 		let copy = self.query
 		let total: Future<Int> = self.count()
 		self.query = copy
-
+		
 		let data: Future<[Result]> = query.range(...count).all()
 		return map(to: CursorPage<Result>.self, data, total) { data, total in
-
+			
 			var data = data
 			var nextPageCursor: String? = nil
 			if data.count == count + 1, let nextFirstItem: Result = data.last{
@@ -53,7 +53,7 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 				//Don't actually want to return this value yet, just getting its data to build the next cursor
 				data.remove(at: data.count - 1)
 			}
-
+			
 			return CursorPage(
 				nextPageCursor: nextPageCursor,
 				data: data,
@@ -61,18 +61,18 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 			)
 		}
 	}
-
-
+	
+	
 	public func sortedForPagination(cursor: String?,
-						 sortFields: [CursorSort<Result>]) throws -> QueryBuilder<Database, Result> {
+									sortFields: [CursorSort<Result>]) throws -> QueryBuilder<Database, Result> {
 		var sorts = sortFields
 		try ensureUniqueSort(sorts: &sorts)
 		return try sortedForPagination(cursor: cursor, cursorBuilder: defaultCursorBuilder(sorts), sorts: sorts)
 	}
-
+	
 	public func sortedForPagination(cursor: String?,
-						 cursorBuilder: @escaping CursorBuilder<Result>,
-						 sorts: [CursorSort<Result>] = []) throws -> QueryBuilder<Database, Result> {
+									cursorBuilder: @escaping CursorBuilder<Result>,
+									sorts: [CursorSort<Result>] = []) throws -> QueryBuilder<Database, Result> {
 		var sorts = sorts
 		try ensureUniqueSort(sorts: &sorts)
 		try filter(cursor: cursor, sorts: sorts)
@@ -81,79 +81,16 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 		}
 		return self
 	}
-
+	
 	// Filter out results before or after the cursor, depending upon order
 	@discardableResult
 	public func filter(cursor: String?, sorts: [CursorSort<Result>]) throws -> QueryBuilder<Database, Result>{
-			guard let orderedCursorParts: [CursorPart] = try cursor?.toCursorParts() else {
-				return self
-			}
-
-			guard orderedCursorParts.count == sorts.count else{
-				throw Abort(.badRequest, reason: "That cursor does not does not match the sorts set for this query.")
-			}
-
-			debugPrint("Cursor decoded : \(orderedCursorParts.map({$0.field + " : " + ("\(String(describing: $0.value))")}))")
-			guard orderedCursorParts.count > 0 else {
-				throw Abort(.badRequest, reason: "This cursor has no parts.")
-			}
-
-			guard let tiebreakerCursorPart = orderedCursorParts.last, let tiebreakerSort: CursorSort<Result> = sorts.last, tiebreakerCursorPart.field == tiebreakerSort.propertyName else{
-				throw Abort(.badRequest, reason: "Improperly formatted pagination query. Last cursor part does not match final sort.")
-			}
-
-			guard orderedCursorParts.count > 1 else{ //Must be a unique, single field sort. So, we only need to get the values greater than or equal to the cursor fields value.
-				try filter(for: tiebreakerSort, startingAt: tiebreakerCursorPart)
-				return self
-			}
-
-			guard orderedCursorParts.count > 2 else{//One nondistinct sort + one distinct tiebreaker sort
-				let nonDistinctSort = sorts[0]
-				let nonDistinctCursorPart = orderedCursorParts[0]
-				return try filterForOptional(nonDistinctSort: nonDistinctSort,
-								  nonDistinctCursorPart: nonDistinctCursorPart,
-								  tiebreakerSort: tiebreakerSort,
-								  tiebreakerCursorPart: tiebreakerCursorPart)
-
-			}
-
-			//There could be n nondistinct sorts + 1 final tiebreaker sort.
-			//We must account for tiebreaks on each nondistinct sort.
-			try group(Database.queryFilterRelationOr) { (or) in
-				var cursorPartStack = orderedCursorParts
-				var sortStack = sorts
-				while cursorPartStack.count > 0{
-//					guard cursorPartStack.count != 2 else{
-//						let nonDistinctSort = sortStack[0]
-//						let nonDistinctCursorPart = cursorPartStack[0]
-//						let tiebreakerSort = sortStack[1]
-//						let tiebreakerCursorPart = cursorPartStack[1]
-//						try or.filterForOptional(nonDistinctSort: nonDistinctSort,
-//												 nonDistinctCursorPart: nonDistinctCursorPart,
-//												 tiebreakerSort: tiebreakerSort,
-//												 tiebreakerCursorPart: tiebreakerCursorPart)
-//						continue
-//					}
-					try or.group(Database.queryFilterRelationAnd){ (and) in
-						let lastIndex = cursorPartStack.count - 1
-						for i in 0...lastIndex{
-							let part = cursorPartStack[i]
-							guard i != lastIndex else{
-								if sorts.count == cursorPartStack.count{
-									try and.filter(for: sorts[i], startingAt: part)
-								}
-								else{
-									try and.filter(for: sorts[i], startingAt: part, inclusive: false)
-								}
-								cursorPartStack.removeLast()
-								sortStack.removeLast()
-								continue
-							}
-							and.filter(sortStack[i].field, Database.queryFilterMethodEqual, part.value)
-						}
-					}
-				}
-			}
+		guard let cursor = cursor else { return self }
+		
+		let cursorQueryBuilder = try CursorQueryBuilder<Result>(cursor: cursor, sorts: sorts)
+		let filterBuilders = cursorQueryBuilder.filterBuilders
+		guard filterBuilders.count > 1 else{ //Must be a unique, single field sort. So, we only need to get the values greater than or equal to the cursor fields value.
+			try filter(for: filterBuilders[0])
 			return self
 		}
 		

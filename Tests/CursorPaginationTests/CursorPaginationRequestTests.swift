@@ -15,17 +15,17 @@ import CodableExtended
 import CursorPagination
 
 class CursorPaginationRequestTests: CursorPaginationTestCase {
-
+	
 	//MARK: Linux Testing
 	static var allTests = [
 		("testLinuxTestSuiteIncludesAllTests", testLinuxTestSuiteIncludesAllTests),
 		("testPaginationRequest", testPaginationRequest)
 	]
-
+	
 	func testLinuxTestSuiteIncludesAllTests(){
 		assertLinuxTestCoverage(tests: type(of: self).allTests)
 	}
-
+	
 	override func configure(router: Router) throws {
 		try super.configure(router: router)
 		router.get("models") { request -> Future<CursorPage<ExampleModel>> in
@@ -33,7 +33,7 @@ class CursorPaginationRequestTests: CursorPaginationTestCase {
 											 sorts: .descending(\.dateField), .ascending(\.stringField))
 		}
 	}
-
+	
 	func testPaginationRequest() throws{
 		try seedModels(40)
 		let existingModels = try ExampleModel.query(on: request).all().wait()
@@ -52,7 +52,7 @@ class CursorPaginationRequestTests: CursorPaginationTestCase {
 			models.append(contentsOf: page.data)
 			cursor = page.nextPageCursor
 		} while cursor != nil
-
+		
 		XCTAssertEqual(models.count, expectedTotalCount)
 	}
 }

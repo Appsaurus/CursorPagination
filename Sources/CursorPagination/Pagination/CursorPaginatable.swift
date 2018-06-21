@@ -8,7 +8,6 @@
 import Foundation
 import Fluent
 import Vapor
-//import Pagination
 
 public protocol CursorPaginatable: Model {
 	static var defaultPageSize: Int { get }
