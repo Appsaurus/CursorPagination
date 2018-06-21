@@ -15,7 +15,7 @@ public typealias CursorBuilder<E: CursorPaginatable> = (E) throws -> String
 
 ////MARK: Main public API
 extension QueryBuilder where Result: CursorPaginatable, Result.Database == Database {
-
+	
 	/// Paginates a query on the given sorts using opqaue cursors. More
 	///
 	/// - Parameters:
@@ -155,61 +155,106 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 				}
 			}
 			return self
-
+		}
+		
+		guard filterBuilders.count > 2 else{//One nondistinct sort + one distinct tiebreaker sort
+			return try filterForOptional(nonDistinctFilter: filterBuilders[0], tieBreakerFilter: filterBuilders[1])
+		}
+		
+		//There could be n nondistinct sorts + 1 final tiebreaker sort.
+		//We must account for tiebreaks on each nondistinct sort.
+		try group(Database.queryFilterRelationOr) { (or) in
+			var filterPartStack = filterBuilders //Copy filter builders to a stack
+			while filterPartStack.count > 0{
+				//					guard cursorPartStack.count != 2 else{
+				//						let nonDistinctSort = sortStack[0]
+				//						let nonDistinctCursorPart = cursorPartStack[0]
+				//						let tiebreakerSort = sortStack[1]
+				//						let tiebreakerCursorPart = cursorPartStack[1]
+				//						try or.filterForOptional(nonDistinctSort: nonDistinctSort,
+				//												 nonDistinctCursorPart: nonDistinctCursorPart,
+				//												 tiebreakerSort: tiebreakerSort,
+				//												 tiebreakerCursorPart: tiebreakerCursorPart)
+				//						continue
+				//					}
+				try or.group(Database.queryFilterRelationAnd){ (and) in
+					let lastIndex = filterPartStack.count - 1
+					for i in 0...lastIndex{
+						let filter = filterPartStack[i]
+						guard i != lastIndex else{
+							if sorts.count == filterPartStack.count{
+								try and.filter(for: filter)
+							}
+							else{
+								try and.filter(for: filter, inclusive: false)
+							}
+							filterPartStack.removeLast()
+							continue
+						}
+						and.filter(filter.sort.field, Database.queryFilterMethodEqual, filter.cursorPart.value)
+					}
+				}
+			}
+		}
+		return self
+		
 	}
-
-
+	
+	
 	@discardableResult
-	public func filterForOptional(nonDistinctSort: CursorSort<Result>,
-								  nonDistinctCursorPart: CursorPart,
-								  tiebreakerSort: CursorSort<Result>,
-								  tiebreakerCursorPart: CursorPart) throws -> QueryBuilder<Database, Result>{
-				let nilValue: String? = nil
-				if nonDistinctSort.fieldIsOptional{
-					group(Database.queryFilterRelationOr) { (or) in
-						if let value = nonDistinctCursorPart.value{
-							or.group(Database.queryFilterRelationAnd, closure: { (and) in
-								and.filter(nonDistinctSort.field, Database.queryFilterMethodEqual, value)
-								and.filter(tiebreakerSort.field, self.filterMethod(for: tiebreakerSort.direction, inclusive: true), tiebreakerCursorPart.value)
-							})
-							switch nonDistinctSort.direction{
-							case .ascending:
-								or.filter(nonDistinctSort.field, Database.queryFilterMethodGreaterThan, value)
-							case .descending:
-								or.filter(nonDistinctSort.field, Database.queryFilterMethodLessThan, value)
-								or.filter(nonDistinctSort.field, Database.queryFilterMethodEqual, nilValue)
-							}
-						}
-						else{ //Nil nondistinct value
-							switch nonDistinctSort.direction{
-							case .ascending:
-								or.group(Database.queryFilterRelationAnd, closure: { (and) in
-									and.filter(nonDistinctSort.field, Database.queryFilterMethodEqual, nonDistinctCursorPart.value)
-									and.filter(tiebreakerSort.field, self.filterMethod(for: tiebreakerSort.direction, inclusive: true), tiebreakerCursorPart.value)
-								})
-								or.filter(nonDistinctSort.field, Database.queryFilterMethodNotEqual, nonDistinctCursorPart.value)
-							case .descending:
-								self.group(Database.queryFilterRelationAnd, closure: { (and) in
-									and.filter(nonDistinctSort.field, Database.queryFilterMethodEqual, nilValue)
-									and.filter(tiebreakerSort.field, self.filterMethod(for: tiebreakerSort.direction, inclusive: true), tiebreakerCursorPart.value)
-								})
-							}
-						}
+	public func filterForOptional(nonDistinctFilter: CursorFilterBuilder<Result>,
+								  tieBreakerFilter: CursorFilterBuilder<Result>) throws -> QueryBuilder<Database, Result>{
+		
+		let nonDistinctSort: CursorSort<Result> = nonDistinctFilter.sort
+		let nonDistinctCursorPart: CursorPart = nonDistinctFilter.cursorPart
+		let tiebreakerSort: CursorSort<Result> = tieBreakerFilter.sort
+		let tiebreakerCursorPart: CursorPart = tieBreakerFilter.cursorPart
+		let nilValue: String? = nil
+		if nonDistinctSort.fieldIsOptional{
+			group(Database.queryFilterRelationOr) { (or) in
+				if let value = nonDistinctCursorPart.value{
+					or.group(Database.queryFilterRelationAnd, closure: { (and) in
+						and.filter(nonDistinctSort.field, Database.queryFilterMethodEqual, value)
+						and.filter(tiebreakerSort.field, self.filterMethod(for: tiebreakerSort.direction, inclusive: true), tiebreakerCursorPart.value)
+					})
+					switch nonDistinctSort.direction{
+					case .ascending:
+						or.filter(nonDistinctSort.field, Database.queryFilterMethodGreaterThan, value)
+					case .descending:
+						or.filter(nonDistinctSort.field, Database.queryFilterMethodLessThan, value)
+						or.filter(nonDistinctSort.field, Database.queryFilterMethodEqual, nilValue)
 					}
-					return self
 				}
-
-				//Non optional
-				try group(Database.queryFilterRelationOr) { (or) in
-					try or.group(Database.queryFilterRelationAnd){ (and) in
-						and.filter(nonDistinctSort.field, Database.queryFilterMethodEqual, nonDistinctCursorPart.value)
-						try and.filter(for: tiebreakerSort, startingAt: tiebreakerCursorPart, inclusive: true)
+				else{ //Nil nondistinct value
+					switch nonDistinctSort.direction{
+					case .ascending:
+						or.group(Database.queryFilterRelationAnd, closure: { (and) in
+							and.filter(nonDistinctSort.field, Database.queryFilterMethodEqual, nonDistinctCursorPart.value)
+							and.filter(tiebreakerSort.field, self.filterMethod(for: tiebreakerSort.direction, inclusive: true), tiebreakerCursorPart.value)
+						})
+						or.filter(nonDistinctSort.field, Database.queryFilterMethodNotEqual, nonDistinctCursorPart.value)
+					case .descending:
+						self.group(Database.queryFilterRelationAnd, closure: { (and) in
+							and.filter(nonDistinctSort.field, Database.queryFilterMethodEqual, nilValue)
+							and.filter(tiebreakerSort.field, self.filterMethod(for: tiebreakerSort.direction, inclusive: true), tiebreakerCursorPart.value)
+						})
 					}
-					try or.filter(for: nonDistinctSort, startingAt: nonDistinctCursorPart, inclusive: false)
 				}
-				return self
+			}
+			return self
+		}
+		
+		//Non optional
+		try group(Database.queryFilterRelationOr) { (or) in
+			try or.group(Database.queryFilterRelationAnd){ (and) in
+				and.filter(nonDistinctSort.field, Database.queryFilterMethodEqual, nonDistinctCursorPart.value)
+				try and.filter(for: tieBreakerFilter, inclusive: true)
+			}
+			try or.filter(for: nonDistinctFilter, inclusive: false)
+		}
+		return self
 	}
-
+	
 	public func filterMethod(for direction: CursorSortDirection, inclusive: Bool = true) -> Database.QueryFilterMethod{
 		switch (inclusive, direction){
 		case (true, .ascending):
@@ -222,11 +267,11 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 			return Database.queryFilterMethodLessThan
 		}
 	}
-
+	
 	@discardableResult
-	public func filter(for sort: CursorSort<Result>, startingAt cursor: CursorPart, inclusive: Bool = true) throws -> QueryBuilder<Database, Result>{
-		let method = filterMethod(for: sort.direction, inclusive: inclusive)
-		filter(sort.field, method, cursor.value)
+	public func filter(for builder: CursorFilterBuilder<Result>, inclusive: Bool = true) throws -> QueryBuilder<Database, Result>{
+		let method = filterMethod(for: builder.sort.direction, inclusive: inclusive)
+		filter(builder.sort.field, method, builder.cursorPart.value)
 		return self
 	}
 	public func ensureUniqueSort(sorts: inout [CursorSort<Result>]) throws {
@@ -238,48 +283,14 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 			sorts.append(Result.idKey.ascendingSort)
 		}
 	}
-
-//	public func cursorPart(forParameter name: String, withValue value: Any) throws -> String{
-//		var value = value
-//		switch value{
-//		case let optional as Optional<Any>:
-//			guard let unwrapped = optional.wrapped else{
-//				return "\(name):,"
-//			}
-//			value = unwrapped //Don't want Optional string description to get encoded
-//			fallthrough
-//		default:
-//			switch value{
-//			case let date as Date:
-//				value = date.timeIntervalSince1970 as Any
-//				break
-//			default: break
-//			}
-//			let stringValue = "\(value)".toBase64()
-//			return "\(name):\(stringValue),"
-//		}
-//	}
-
-//	private func defaultCursorBuilder(_ sorts: [KeyPathSort<Result>]) -> CursorBuilder<Result>{
-//		let cursorBuilder: (Result) throws -> String = { (model: Result) in
-//			var cursor: String = ""
-//			for sort in sorts{
-//				let value = model[keyPath: sort.keyPath]
-//				cursor += try self.cursorPart(forParameter: sort.propertyName, withValue: value)
-//			}
-//			cursor = String(cursor.dropLast())
-//			return cursor
-//		}
-//		return cursorBuilder
-//	}
-
-
+	
+	
 	private func defaultCursorBuilder(_ sorts: [CursorSort<Result>]) throws -> CursorBuilder<Result>{
 		let cursorBuilder: (Result) throws -> String = { (model: Result) in
 			let cursorParts = sorts.map({ (sort) -> CursorPart in
 				let value: Any = model[keyPath: sort.keyPath]
-//				print("Key: \(sort.propertyName)")
-//				print("Part Value: \(value)")
+				//				print("Key: \(sort.propertyName)")
+				//				print("Part Value: \(value)")
 				return CursorPart(key: sort.propertyName, value: value, direction: sort.direction)
 			})
 			print("cursorParts: \(cursorParts)")
@@ -287,38 +298,25 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 		}
 		return cursorBuilder
 	}
-
-
-
 }
 
 
-public class CursorQueryBuilder<M: CursorPaginatable>{
 
-}
+
+
 extension String{
 	func arrayOfDictionariesFromJSONString() throws -> [AnyDictionary] {
 		guard let data = data(using: .utf8) else{
 			throw EncodingError.invalidValue(self, EncodingError.Context.init(codingPath: [], debugDescription: "Unable to convert string to utf8 data."))
 		}
-
+		
 		guard let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [Any] else {
 			throw EncodingError.invalidValue(self, EncodingError.Context.init(codingPath: [], debugDescription: "Unable to string to array of dictionaries."))
 		}
 		return jsonObject.map { $0 as! [String: Any] }
 	}
-
+	
 	func arrayOfAnyCodableDictionariesFromJSONString() throws -> [AnyCodableDictionary]{
 		return try arrayOfDictionariesFromJSONString().map({try $0.toAnyCodableDictionary()})
 	}
 }
-//extension Decodable {
-//
-//	public mutating func decodeReflectively(from decoder: Decoder, overwritesMissingKeysAsNilValues: Bool = false) throws{
-//		let container: KeyedDecodingContainer<DynamicCodingKey> = try decoder.container(keyedBy: DynamicCodingKey.self)
-//		let reflectedProperties = try properties(self)
-//		for property in reflectedProperties{
-//			try setTypedValue(for: property, using: container)
-//		}
-//	}
-//}

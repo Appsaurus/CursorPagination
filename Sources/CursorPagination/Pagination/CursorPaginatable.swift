@@ -17,21 +17,21 @@ public protocol CursorPaginatable: Model {
 }
 
 extension CursorPaginatable{
-
+	
 	public static var defaultPageSorts: [CursorSort<Self>] {
 		return [createdAtKey?.descendingSort ?? idKey.ascendingSort]
 	}
 	public static var defaultPageSize: Int {
 		return 10
 	}
-
+	
 	public static var maxPageSize: Int? {
 		return nil
 	}
 }
 
 extension CursorPaginatable {
-
+	
 	/// Paginates a query using opqaue cursors.
 	///
 	/// - Parameters:
@@ -45,13 +45,13 @@ extension CursorPaginatable {
 								sorts: [CursorSort<Self>]) throws -> Future<CursorPage<Self>> {
 		return try query(on: conn).paginate(cursor: cursor, count: count, sortFields: sorts)
 	}
-
+	
 	public static func paginate(request: Request,
 								sorts: [CursorSort<Self>] = []) throws -> Future<CursorPage<Self>> {
 		let params = request.cursorPaginationParameters()
 		return try paginate(on: request, cursor: params?.cursor, sorts: sorts)
 	}
-
+	
 	public static func paginate(request: Request,
 								sorts: CursorSort<Self>...) throws -> Future<CursorPage<Self>> {
 		return try paginate(request: request, sorts: sorts)

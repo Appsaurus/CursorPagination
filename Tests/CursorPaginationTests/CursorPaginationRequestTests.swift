@@ -26,12 +26,6 @@ class CursorPaginationRequestTests: CursorPaginationTestCase {
 		assertLinuxTestCoverage(tests: type(of: self).allTests)
 	}
 
-//	override func setupOnce() throws {
-//		try super.setupOnce()
-////		CursorPaginationRequestTests.persistApplicationBetweenTests = true
-//
-//	}
-
 	override func configure(router: Router) throws {
 		try super.configure(router: router)
 		router.get("models") { request -> Future<CursorPage<ExampleModel>> in
@@ -41,7 +35,7 @@ class CursorPaginationRequestTests: CursorPaginationTestCase {
 	}
 
 	func testPaginationRequest() throws{
-		try seedModels(20)
+		try seedModels(40)
 		let existingModels = try ExampleModel.query(on: request).all().wait()
 		let expectedTotalCount = existingModels.count
 		var cursor: String? = nil
