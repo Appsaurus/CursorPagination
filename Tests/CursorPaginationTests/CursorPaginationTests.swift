@@ -46,25 +46,8 @@ class CursorPaginationTests: CursorPaginationTestCase {
 	func testLinuxTestSuiteIncludesAllTests(){
 		assertLinuxTestCoverage(tests: type(of: self).allTests)
 	}
-
-//	Determines if test runs with various sizes of data. For most development purposes this can be false. This will minimize the time needed
-//	to seed data and make the tests run much faster. Occasionally set to true when larger implementation changes are made, or before pushing
-//	to repo. This will test various size data sets, testing against various edge cases. Much slower due to required reseeding of data between tests.
-
-	#if os(Linux)
-	var testAllEdgeCases = false //FIXME:: Setting this to true may break Linux test. Not sure why yet, just hangs.
-	#else
-	var testAllEdgeCases = true
-	#endif
-
-//	lazy var seedCounts = testAllEdgeCases ? [0, 1, 5, 10, 11] : [15]
 	static let seedCount = 15
 	let pageLimit = 5
-
-
-	func debugPrint(sqlLiteQuery: FluentSQLiteQuery){
-		Swift.debugPrint("QueryDescription: \(sqlLiteQuery)")
-	}
 
 	func testEmptyTable() throws{
 		try runTest(seedCount: 0, sorts: [.descending(\.id)], orderTest: { (previousModel, model) -> Bool in
@@ -109,29 +92,14 @@ class CursorPaginationTests: CursorPaginationTestCase {
 	}
 
 	func testBoolAscendingSort() throws{
-//		try debugPrint(models: try seedModels())
-//
-//		let sorts: [KeyPathSort<ExampleModel>] = [.ascending(\.booleanField)]
-//		let builder = try ExampleModel.query(on: request).sortedForPagination(cursor: nil, sortFields: sorts)
-//		debugPrint(sqlLiteQuery: builder.query)
-//		let page = try ExampleModel.query(on: request).paginate(cursor: nil, sortFields: sorts).wait()
-//		try debugPrint(models: page.data)
-//		let builder2 = try ExampleModel.query(on: request).sortedForPagination(cursor: page.nextPageCursor, sortFields: sorts)
-//		debugPrint(sqlLiteQuery: builder2.query)
-//		let page2 = try ExampleModel.query(on: request).paginate(cursor: page.nextPageCursor, sortFields: sorts).wait()
-//		try debugPrint(models: page2.data)
-
-				try runTest(sorts: [.ascending(\.booleanField)], orderTest: { (previousModel, model) -> Bool in
-					let lh = previousModel.booleanField
-					let rh = model.booleanField
-					return (lh == false && rh == true) || (lh == rh && previousModel.id! < model.id!)
-				})
+		try runTest(sorts: [.ascending(\.booleanField)], orderTest: { (previousModel, model) -> Bool in
+			let lh = previousModel.booleanField
+			let rh = model.booleanField
+			return (lh == false && rh == true) || (lh == rh && previousModel.id! < model.id!)
+		})
 	}
 
 	func testBoolDescendingSort() throws{
-//		try seedModels()
-//		let trueModels = try ExampleModel.query(on: request).filter(\.booleanField >= false).all().wait()
-//		try debugPrint(models: trueModels)
 
 		try runTest(sorts: [.descending(\.booleanField)], orderTest: { (previousModel, model) -> Bool in
 			let lh = previousModel.booleanField
@@ -165,18 +133,14 @@ class CursorPaginationTests: CursorPaginationTestCase {
 	}
 
 	func testDateAscendingSort() throws {
-		#if !os(Linux) //FIXME: Another wierd issue where too many tests hang on linux, can remove this or any other test and it won't hang.
 		try runTest(sorts: [.ascending(\.dateField)], orderTest: { (previousModel, model) -> Bool in
 			return  model.dateField >= previousModel.dateField
 		})
-		#endif
 	}
 	func testDateDescendingSort() throws {
-		#if !os(Linux) //FIXME: Another wierd issue where too many tests hang on linux, can remove this or any other test and it won't hang.
 		try runTest(sorts: [.descending(\.dateField)], orderTest: { (previousModel, model) -> Bool in
 			return model.dateField <= previousModel.dateField
 		})
-		#endif
 	}
 
 
@@ -240,59 +204,56 @@ class CursorPaginationTests: CursorPaginationTestCase {
 
 	func runTest(seedCount: Int = seedCount, sorts: [CursorSort<ExampleModel>], orderTest: OrderTest) throws{
 		try runTest(seedCount: seedCount, pageFetcher: { (request, cursor, pageLimit) -> Future<CursorPage<ExampleModel>> in
-			return try ExampleModel.paginate(on: request, cursor: cursor, count: pageLimit, sorts: sorts)
+			return try ExampleModel.paginate(on: request, cursor: cursor, limit: pageLimit, sorts: sorts)
 		}, orderTest: orderTest)
 	}
 	typealias OrderTest = (ExampleModel, ExampleModel) -> Bool
 	typealias PageFetcher = (_ request: DatabaseConnectable, _ cursor: String?, _ count: Int) throws -> Future<CursorPage<ExampleModel>>
 
 	func runTest(seedCount: Int = seedCount, pageFetcher: PageFetcher, orderTest: OrderTest) throws{
-			let req = request
-			if testAllEdgeCases{
-				try ExampleModel.query(on: req).all().delete(on: req).wait()
-			}
-			let models: [ExampleModel] = try seedModels(seedCount)
-			try debugPrint(models: models)
-			let sortedIds: [Int] = sortIds(for: models)
-			var cursor: String? = nil
-			let total: Int = try ExampleModel.query(on: request).count().wait()
-			var fetched: [ExampleModel] = []
-			while fetched.count != total && total > 0{
-				let page: CursorPage<ExampleModel> = try pageFetcher(request, cursor, pageLimit).wait()
-				try debugPrint(page: page)
-				cursor = page.nextPageCursor
-				fetched.append(contentsOf: page.data)
-				if cursor == nil { break }
-			}
+		let req = request
+		try ExampleModel.query(on: req).all().delete(on: req).wait()
+		let models: [ExampleModel] = try seedModels(seedCount)
+		let sortedIds: [Int] = sortIds(for: models)
+		var cursor: String? = nil
+		let total: Int = try ExampleModel.query(on: request).count().wait()
+		var fetched: [ExampleModel] = []
+		while fetched.count != total && total > 0{
+			let page: CursorPage<ExampleModel> = try pageFetcher(request, cursor, pageLimit).wait()
+//			try debugPrint(page: page)
+			cursor = page.nextPageCursor
+			fetched.append(contentsOf: page.data)
+			if cursor == nil { break }
+		}
 
 
-			for (i, model) in fetched.enumerated(){
-				guard i > 0 else { continue }
-				let previousModel = fetched[i - 1]
-				let result = orderTest(previousModel, model)
-				XCTAssertTrue(result)
-			}
-			XCTAssertEqual(sortedIds, sortIds(for: try! ExampleModel.query(on: request).all().wait()))
+		for (i, model) in fetched.enumerated(){
+			guard i > 0 else { continue }
+			let previousModel = fetched[i - 1]
+			let result = orderTest(previousModel, model)
+			XCTAssertTrue(result)
+		}
+		XCTAssertEqual(sortedIds, sortIds(for: try! ExampleModel.query(on: request).all().wait()))
 
-			XCTAssertEqual(sortedIds.count, fetched.count)
-			let sortedResultIds = sortIds(for: fetched)
-			XCTAssertEqual(sortedIds, sortedResultIds)
-			let expectedSet = Set(sortedIds)
-			let resultSet = Set(sortedResultIds)
-			let missingExpected = expectedSet.subtracting(resultSet)
-			if missingExpected.count > 0{
-				XCTFail("Missing expected results with ids \(missingExpected)")
-			}
+		XCTAssertEqual(sortedIds.count, fetched.count)
+		let sortedResultIds = sortIds(for: fetched)
+		XCTAssertEqual(sortedIds, sortedResultIds)
+		let expectedSet = Set(sortedIds)
+		let resultSet = Set(sortedResultIds)
+		let missingExpected = expectedSet.subtracting(resultSet)
+		if missingExpected.count > 0{
+			XCTFail("Missing expected results with ids \(missingExpected)")
+		}
 
-			let unexpected = resultSet.subtracting(expectedSet)
-			if unexpected.count > 0{
-				XCTFail("Unexpected results with ids \(unexpected)")
-			}
+		let unexpected = resultSet.subtracting(expectedSet)
+		if unexpected.count > 0{
+			XCTFail("Unexpected results with ids \(unexpected)")
+		}
 
-			let duplicates = sortedResultIds.duplicates
-			if duplicates.count > 0{
-				XCTFail("Unexpected duplicates with ids \(duplicates)")
-			}
+		let duplicates = sortedResultIds.duplicates
+		if duplicates.count > 0{
+			XCTFail("Unexpected duplicates with ids \(duplicates)")
+		}
 	}
 
 }

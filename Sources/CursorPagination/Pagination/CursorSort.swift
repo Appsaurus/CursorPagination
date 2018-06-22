@@ -10,14 +10,44 @@ import Fluent
 import Vapor
 
 
+extension ReflectedProperty{
+	public var fullPath: String{
+		return path.joined(separator: ".")
+	}
+}
 
+extension FluentProperty{
+	public var fullPath: String{
+		return path.joined(separator: ".")
+	}
+}
+extension Array where Element == ReflectedProperty{
+	public func matching(name: String) -> ReflectedProperty? {
+		return first(where: {$0.fullPath == name})
+	}
+}
+
+extension Reflectable{
+	public static func propertyNamed(_ name: String) throws -> ReflectedProperty? {
+		return try reflectProperties().matching(name: name)
+	}
+
+	public static func hasProperty(named name: String) throws -> Bool{
+		return try propertyNamed(name) != nil
+	}
+
+	public static func fluentProperty(named name: String) throws -> FluentProperty?{
+		guard let property = try propertyNamed(name) else { return nil }
+		return FluentProperty.reflected(property, rootType: self)
+	}
+}
 public struct CursorSort<M: CursorPaginatable>{
 	public var keyPath:  PartialKeyPath<M>?
 	public let direction: CursorSortDirection
 	public var fluentProperty: FluentProperty
 
 	public var propertyName: String{
-		return fluentProperty.name
+		return fluentProperty.fullPath
 	}
 
 	public var sort: M.Database.QuerySort{
@@ -43,11 +73,21 @@ public struct CursorSort<M: CursorPaginatable>{
 	}
 
 	public init(_ cursorPart: CursorPart) throws{
-		self.direction = cursorPart.direction
-		guard let property = try M.reflectProperties().first(where: {$0.path.joined(separator: ".") == cursorPart.field}) else{
-			throw Abort(.badRequest, reason: "Cursor part contained a field that does not map to this model.")
+		try self.init(direction: cursorPart.direction, propertyName: cursorPart.field)
+	}
+
+	public init(direction: String, propertyName: String) throws {
+		guard let cursorDirection = CursorSortDirection.init(rawValue: direction) else {
+			throw Abort(.badRequest, reason: "Expected values of \'ascending\' or  \'descending\' for direction parameter, but received \(direction).")
 		}
-		self.fluentProperty = FluentProperty.reflected(property, rootType: M.self)
+		try self.init(direction: cursorDirection, propertyName: propertyName)
+	}
+	public init(direction: CursorSortDirection, propertyName: String) throws {
+		guard let fluentProperty = try M.fluentProperty(named: propertyName) else {
+			throw Abort(.badRequest, reason: "Attempted to create a cursor sort is not part of this models schema.")
+		}
+		self.direction = direction
+		self.fluentProperty = fluentProperty
 	}
 
 	public static func sort<M: Model, T>(_ keyPath: KeyPath<M, T>, _ direction: CursorSortDirection = .ascending) -> CursorSort<M>{

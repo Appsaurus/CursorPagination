@@ -15,27 +15,3 @@ public struct CursorPage<E: CursorPaginatable>: Content {
 	public let data: [E]
 	public let remaining: Int
 }
-
-extension KeyPath where Root: Model{
-
-//	public func querySort(_ direction: Root.Database.QuerySortDirection = Root.Database.querySortDirectionAscending)-> Root.Database.QuerySort{
-//		return Root.Database.querySort(queryField, direction)
-//	}
-//	public var fluentProperty: FluentProperty{
-//		return .keyPath(self)
-//	}
-
-//	public var queryField: Root.Database.QueryField{
-//		return Root.Database.queryField(fluentProperty)
-//	}
-
-//	public var propertyName: String{
-//		return fluentProperty.name
-//	}
-}
-
-extension FluentProperty{
-	public var name: String{
-		return path.joined(separator: ".")
-	}
-}

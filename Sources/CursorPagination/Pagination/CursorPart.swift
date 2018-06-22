@@ -41,6 +41,7 @@ public struct CursorPart: Codable{
 		var container = encoder.container(keyedBy: CodingKeys.self)
 		try container.encode(field, forKey: .key)
 		try container.encodeIfPresent(value, forKey: .value)
+		try container.encode(direction, forKey: .direction)
 	}
 	public init(from decoder: Decoder) throws{
 		let container = try decoder.container(keyedBy: CodingKeys.self)
