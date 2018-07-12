@@ -1,4 +1,7 @@
-![CursorPaginationLogo](CursorPaginationLogo.png "CursorPagination logo")
+<p align="center">
+	<img src="CursorPaginationLogo.png">
+</p>
+
 # CursorPagination
 ![Swift](http://img.shields.io/badge/swift-4.1-brightgreen.svg)
 ![Vapor](http://img.shields.io/badge/vapor-3.0-brightgreen.svg)
