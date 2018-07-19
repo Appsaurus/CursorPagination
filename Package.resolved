@@ -78,8 +78,8 @@
         "repositoryURL": "https://github.com/vapor/fluent.git",
         "state": {
           "branch": null,
-          "revision": "058b4579aea61dd05012f121fa9fa9042488c57b",
-          "version": "3.0.0-rc.4.0.2"
+          "revision": "270b6fa372f03809b9795e8f8b9d1c31267a0ff3",
+          "version": "3.0.0"
         }
       },
       {
@@ -87,8 +87,8 @@
         "repositoryURL": "https://github.com/vapor/fluent-sqlite.git",
         "state": {
           "branch": null,
-          "revision": "83075582da7414e5b3cdf179266381dec5a106b0",
-          "version": "3.0.0-rc.4.0.1"
+          "revision": "c32f5bda84bf4ea691d19afe183d40044f579e11",
+          "version": "3.0.0"
         }
       },
       {
@@ -96,8 +96,8 @@
         "repositoryURL": "https://github.com/Appsaurus/FluentExtensions",
         "state": {
           "branch": null,
-          "revision": "48a8b1625faa0047a52ac3a6354981bdf229e6a8",
-          "version": "0.2.0"
+          "revision": "f5b74d74a36a77801a2cd4f3b0c2b22cac088498",
+          "version": "0.2.1"
         }
       },
       {
@@ -105,8 +105,8 @@
         "repositoryURL": "https://github.com/Appsaurus/FluentSeeder",
         "state": {
           "branch": null,
-          "revision": "ff07b246e62994b213246ec56bec2acfda802c27",
-          "version": "0.1.0"
+          "revision": "b72c28c88155b7f6e5a96f3baf3affa41539a060",
+          "version": "0.1.1"
         }
       },
       {
@@ -132,8 +132,8 @@
         "repositoryURL": "https://github.com/Appsaurus/FluentTestUtils",
         "state": {
           "branch": null,
-          "revision": "6ba7896753a4f32b6847ed42a1fb9d6d894fbf5c",
-          "version": "0.1.0"
+          "revision": "4864251820ddc89645797121fa1d3ffadf09484f",
+          "version": "0.1.1"
         }
       },
       {
@@ -213,8 +213,8 @@
         "repositoryURL": "https://github.com/vapor/sql.git",
         "state": {
           "branch": null,
-          "revision": "f89155dbf3dd48c838f79d28a636bbe32ad38693",
-          "version": "2.0.0-beta.3"
+          "revision": "bfbaa048f9e655218611b65da470efa7deb16616",
+          "version": "2.0.2"
         }
       },
       {
@@ -222,8 +222,8 @@
         "repositoryURL": "https://github.com/vapor/sqlite.git",
         "state": {
           "branch": null,
-          "revision": "500748e7bd9d19b9beeba5b4bccbe751741eb280",
-          "version": "3.0.0-rc.4.1"
+          "revision": "635ad49b2d6395b63462abffcce58ee38be1e4cc",
+          "version": "3.0.0"
         }
       },
       {
@@ -312,8 +312,8 @@
         "repositoryURL": "https://github.com/Appsaurus/VaporTestUtils",
         "state": {
           "branch": null,
-          "revision": "da3681f5f966b317c560d2b985c81d3487013514",
-          "version": "0.1.0"
+          "revision": "d51b1bcd6bcbd0c03007572caa6a66dae6230c09",
+          "version": "0.1.1"
         }
       },
       {
