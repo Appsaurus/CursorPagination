@@ -226,7 +226,7 @@ router.get("dynamicModels") { request -> Future<CursorPage<ExampleModel>> in
 - [x] Optional support
 - [x] Compound sorts
 - [x] Dynamic sorting
-- [ ] Allow for additional filters on queries (may already work, needs to be tested)
+- [x] Allow for additional filters on queries
 - [ ] Aggregate support (might be some use cases here)
 - [ ] Nil sort order preference
 - [ ] Allow for customization of CursorPage's JSON structure
