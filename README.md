@@ -210,15 +210,15 @@ You can allow the client to dynamically dictate how the results are sorted via q
 
 > Because the dynamic sorting API has no way to resolve KeyPaths from string based parameters, it uses runtime reflection to build the cursor. You may not want to use this API in production until Swift ABI is stable.
 
-Apply each sort via the `sort[]` and `order[]` parameters like so:
+Setup a dynamically sortable request handler like so:
 
 ```swift
 router.get("dynamicModels") { request -> Future<CursorPage<ExampleModel>> in
 	return try ExampleModel.paginate(dynamicRequest: request)
 }
 ```
-
-`curl "http://localhost:8080/dynamicModels?limit=5&sort%5B%5D=booleanField&order%5B%5D=descending&sort%5B%5D=stringField&order%5B%5D=ascending"`
+Then in your request, each sorts and orders via the `sort[]` and `order[]` parameters respectively (order matters):
+`curl "http://localhost:8080/dynamicModels?limit=5&sort[]=booleanField&order[]=descending&sort[]=stringField&order[]=ascending"`
 
 
 ### TODO
