@@ -66,7 +66,7 @@ public struct CursorQueryBuilder<M: CursorPaginatable>{
 	public var filterBuilders: [CursorFilterBuilder<M>] = []
 	public init(cursor: String, sorts: [CursorSort<M>]) throws {
 		let orderedCursorParts: [CursorPart] = try cursor.toCursorParts()
-        print("Cursor Parts: \(orderedCursorParts)")
+//        debugPrint("Cursor Parts: \(orderedCursorParts)")
 		guard orderedCursorParts.count > 0 else {
 			throw Abort(.badRequest, reason: "This cursor has no parts.")
 		}

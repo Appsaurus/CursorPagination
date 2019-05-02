@@ -33,7 +33,7 @@ class CursorPaginationTestCase: FluentAppTestCase {
 
     open override func configure(databases: inout DatabasesConfig) throws{
         try super.configure(databases: &databases)
-        databases.enableLogging(on: .sqlite)
+//        databases.enableLogging(on: .sqlite)
     }
 }
 

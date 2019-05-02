@@ -236,14 +236,14 @@ class CursorPaginationTests: CursorPaginationTestCase {
 
 			let req = request
 			try ExampleModel.query(on: req).all().delete(on: req).wait()
-			let models = try seedModels(seedCount)
+			try seedModels(seedCount)
 			let sortedIds: [Int] = seedCount < 1 ? [] : Array<Int>(1...seedCount)
 			var cursor: String? = nil
 			let total: Int = try ExampleModel.query(on: request).count().wait()
 			var fetched: [ExampleModel] = []
 			while fetched.count != total && total > 0{
 				let page: CursorPage<ExampleModel> = try pageFetcher(request, cursor, pageLimit).wait()
-                try debugPrint(page: page)
+//                try debugPrint(page: page)
 				cursor = page.nextPageCursor
 				fetched.append(contentsOf: page.data)
 				if cursor == nil { break }

@@ -90,7 +90,7 @@ class CursorPaginationRequestTests: CursorPaginationTestCase {
 											  path: "dynamicModels",
 											  queryItems: queryItems)
 			let page: CursorPage<ExampleModel> = try response.content.decode(CursorPage<ExampleModel>.self).wait()
-            try debugPrint(page: page)
+//            try debugPrint(page: page)
 			models.append(contentsOf: page.data)
 			XCTAssert(page.data.count <= limit)
 			cursor = page.nextPageCursor

@@ -116,18 +116,6 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 			return self
 		}
 
-//        guard filterBuilders.count > 2 else{
-//            group(.or) { (or) in
-//                or.group(.and){ (and) in
-//                    and.filter(filterBuilders[0], .equal)
-//                    and.filter(filterBuilders[1], inclusive: true)
-//                }
-//                or.filter(filterBuilders[0], inclusive: false)
-//            }
-//
-//            return self
-//        }
-
 		//There could be 1...n nondistinct sorts + 1 distinct sort.
 		//We must account for tiebreaks on each nondistinct sort.
 		group(.or) { (or) in
