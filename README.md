@@ -3,7 +3,7 @@
 </p>
 
 # CursorPagination
-![Swift](http://img.shields.io/badge/swift-4.1-brightgreen.svg)
+![Swift](http://img.shields.io/badge/swift-5.0-brightgreen.svg)
 ![Vapor](http://img.shields.io/badge/vapor-3.0-brightgreen.svg)
 [![Swift Package Manager](https://img.shields.io/badge/SPM-compatible-4BC51D.svg?style=flat)](https://swift.org/package-manager/)
 ![License](http://img.shields.io/badge/license-MIT-CCCCCC.svg)
