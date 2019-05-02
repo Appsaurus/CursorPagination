@@ -76,24 +76,25 @@ class CursorPaginationRequestTests: CursorPaginationTestCase {
 		let limit: Int = 5
 		var cursor: String? = nil
 		var models: [ExampleModel] = []
-		repeat{
+        repeat{
 			var queryItems: [URLQueryItem] = []
 			if let cursor = cursor{
 				queryItems.append(URLQueryItem(name: "cursor", value: cursor))
 			}
 			queryItems.append(URLQueryItem(name: "limit", value: "\(limit)"))
-			queryItems.append(URLQueryItem(name: "sort[]", value: "booleanField"))
-			queryItems.append(URLQueryItem(name: "order[]", value: "descending"))
-			queryItems.append(URLQueryItem(name: "sort[]", value: "stringField"))
+            queryItems.append(URLQueryItem(name: "sort[]", value: "booleanField"))
+            queryItems.append(URLQueryItem(name: "order[]", value: "descending"))
+			queryItems.append(URLQueryItem(name: "sort[]", value: "dateField"))
 			queryItems.append(URLQueryItem(name: "order[]", value: "ascending"))
 			let response = try executeRequest(method: .GET,
 											  path: "dynamicModels",
 											  queryItems: queryItems)
 			let page: CursorPage<ExampleModel> = try response.content.decode(CursorPage<ExampleModel>.self).wait()
+            try debugPrint(page: page)
 			models.append(contentsOf: page.data)
 			XCTAssert(page.data.count <= limit)
 			cursor = page.nextPageCursor
-		} while cursor != nil
+        } while cursor != nil
 
 		XCTAssertEqual(models.count, expectedTotalCount)
 	}

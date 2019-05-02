@@ -29,6 +29,8 @@ class CursorPaginationTests: CursorPaginationTestCase {
 		("testIdDescendingSort", testIdDescendingSort),
 		("testBoolAscendingSort", testBoolAscendingSort),
 		("testBoolDescendingSort", testBoolDescendingSort),
+        ("testBoolComplexSort", testBoolComplexSortDescending),
+        ("testBoolComplexSortDescending", testBoolComplexSortDescending),
 		("testStringAscendingSort", testStringAscendingSort),
 		("testStringDescendingSort", testStringDescendingSort),
 		("testDoubleAscendingSort", testDoubleAscendingSort),
@@ -44,8 +46,8 @@ class CursorPaginationTests: CursorPaginationTestCase {
 	func testLinuxTestSuiteIncludesAllTests(){
 		assertLinuxTestCoverage(tests: type(of: self).allTests)
 	}
-	static let seedCount = 600
-	let pageLimit = 50
+	static let seedCount = 100
+	let pageLimit = 20
 
 	func testEmptyTable() throws{
 		try runTest(seedCount: 0, sorts: [.descending(\.id)], orderTest: { (previousModel, model) -> Bool in
@@ -183,7 +185,7 @@ class CursorPaginationTests: CursorPaginationTestCase {
 			let generalOptionalStringCase = model.optionalStringField == nil
 				|| previousModel.optionalStringField == nil
 				|| model.optionalStringField! > previousModel.optionalStringField!
-				|| (model.optionalStringField! == previousModel.optionalStringField! && model.id! > previousModel.id!)
+				|| (model.optionalStringField! == previousModel.optionalStringField! && previousModel.id! < model.id!)
 			let doubleAndStringTieCase = model.doubleField == previousModel.doubleField
 				&& model.stringField == previousModel.stringField
 				&& generalOptionalStringCase
@@ -194,6 +196,28 @@ class CursorPaginationTests: CursorPaginationTestCase {
 			return doubleAndStringTieCase || doubleTieCase || doubleCase
 		})
 	}
+
+    func testBoolComplexSort() throws{
+        try runTest(sorts: [.ascending(\.booleanField), .ascending(\.intField)], orderTest: { (previousModel, model) -> Bool in
+            let lh = previousModel.booleanField
+            let rh = model.booleanField
+            let uniqueSortOption = (lh == false && rh == true)
+            let intTiebreaker = (lh == rh && previousModel.intField < model.intField)
+            let idTiebreaker = (lh == rh && previousModel.intField == model.intField && previousModel.id! < model.id!)
+            return uniqueSortOption || intTiebreaker || idTiebreaker
+        })
+    }
+
+    func testBoolComplexSortDescending() throws{
+        try runTest(sorts: [.descending(\.booleanField), .ascending(\.intField)], orderTest: { (previousModel, model) -> Bool in
+            let lh = previousModel.booleanField
+            let rh = model.booleanField
+            let uniqueSortOption = (lh == true && rh == false)
+            let intTiebreaker = (lh == rh && previousModel.intField < model.intField)
+            let idTiebreaker = (lh == rh && previousModel.intField == model.intField && previousModel.id! < model.id!)
+            return uniqueSortOption || intTiebreaker || idTiebreaker
+        })
+    }
 
 	func sortIds(for models: [ExampleModel]) -> [Int]{
 		return models.map({$0.id!}).sorted()
@@ -219,6 +243,7 @@ class CursorPaginationTests: CursorPaginationTestCase {
 			var fetched: [ExampleModel] = []
 			while fetched.count != total && total > 0{
 				let page: CursorPage<ExampleModel> = try pageFetcher(request, cursor, pageLimit).wait()
+                try debugPrint(page: page)
 				cursor = page.nextPageCursor
 				fetched.append(contentsOf: page.data)
 				if cursor == nil { break }
@@ -228,7 +253,13 @@ class CursorPaginationTests: CursorPaginationTestCase {
 				guard i > 0 else { continue }
 				let previousModel = fetched[i - 1]
 				let result = orderTest(previousModel, model)
-				XCTAssertTrue(result)
+                if result == false {
+                    print("Assertion failed for order test between previous model:")
+                    try! previousModel.toAnyDictionary().printPrettyJSONString()
+                    print("and model:")
+                    try! model.toAnyDictionary().printPrettyJSONString()
+                }
+                XCTAssertTrue(result)
 			}
 			XCTAssertEqual(sortedIds, sortIds(for: try! ExampleModel.query(on: request).all().wait()))
 
@@ -257,7 +288,7 @@ class CursorPaginationTests: CursorPaginationTestCase {
 
 fileprivate extension Array where Element: Comparable & Hashable {
 
-	fileprivate var duplicates: [Element] {
+    var duplicates: [Element] {
 
 		let sortedElements = sorted { $0 < $1 }
 		var duplicatedElements = Set<Element>()
@@ -277,7 +308,7 @@ fileprivate extension Array where Element: Comparable & Hashable {
 
 
 fileprivate extension Future where T: Collection, T.Element: Model{
-	fileprivate func delete(on conn: DatabaseConnectable) -> Future<Void>{
+    func delete(on conn: DatabaseConnectable) -> Future<Void>{
 		return flatMap(to: Void.self) { elements in
 			return elements.delete(on: conn)
 		}
@@ -285,7 +316,7 @@ fileprivate extension Future where T: Collection, T.Element: Model{
 }
 
 fileprivate extension Collection where Element: Model{
-	fileprivate func delete(on conn: DatabaseConnectable)  -> Future<Void>{
+    func delete(on conn: DatabaseConnectable)  -> Future<Void>{
 		return map { $0.delete(on: conn) }.flatten(on: conn)
 	}
 }

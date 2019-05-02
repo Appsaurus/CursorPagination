@@ -58,7 +58,7 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 			
 			var data = data
 			var nextPageCursor: String? = nil
-			if data.count == limit + 1, let nextFirstItem: Result = data.last{
+			if data.count == limit + 1, let nextFirstItem: Result = data.last {
 				nextPageCursor = "\(try cursorBuilder(nextFirstItem).toBase64())"
 				//Don't actually want to return this value yet, just getting its data to build the next cursor
 				data.remove(at: data.count - 1)
@@ -81,6 +81,7 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 	//	for things that are not mission critical, like admin searching functionality.
 	public func paginate(dynamicRequest: Request) throws -> Future<CursorPage<Result>> {
 		let params = try dynamicRequest.query.decode(DynamicCursorPaginationParameters<Result>.self)
+        debugPrint("Params \(params)")
 		return try paginate(cursor: params.cursor, limit: params.limit, sorts: try params.cursorSorts())
 
 	}
@@ -239,9 +240,15 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 		let cursorBuilder: (Result) throws -> String = { (model: Result) in
 			let cursorParts = try sorts.map({ (sort) -> CursorPart in
 				let value: Any = sort.keyPath != nil ? model[keyPath: sort.keyPath!] : try RuntimeExtensions.get(sort.propertyName, from: model)
-				return CursorPart(key: sort.propertyName, value: value, direction: sort.direction)
+                let cursorPart = CursorPart(key: sort.propertyName, value: value, direction: sort.direction)
+                print("Key: \(sort.propertyName)")
+                print("Value: \(value)")
+                print("Direction: \(sort.direction)")
+                return cursorPart
 			})
-			return try cursorParts.encodeAsJSONString(using: JSONEncoder(.secondsSince1970))
+            let encodedString = try cursorParts.encodeAsJSONString(using: JSONEncoder(.secondsSince1970))
+            print("String: \(encodedString)")
+			return encodedString
 		}
 		return cursorBuilder
 	}

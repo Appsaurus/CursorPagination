@@ -12,7 +12,7 @@ import RuntimeExtensions
 import Codability
 import CodableExtensions
 
-public struct CursorPart: Codable{
+public struct CursorPart: Codable {
 	public var field: String
 	public var value: AnyCodable?
 	public var direction: CursorSortDirection = .ascending
@@ -52,6 +52,7 @@ public struct CursorPart: Codable{
 		}
 
 	}
+
 }
 
 public extension String{
