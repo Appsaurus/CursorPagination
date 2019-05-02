@@ -81,7 +81,7 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 	//	for things that are not mission critical, like admin searching functionality.
 	public func paginate(dynamicRequest: Request) throws -> Future<CursorPage<Result>> {
 		let params = try dynamicRequest.query.decode(DynamicCursorPaginationParameters<Result>.self)
-        debugPrint("Params \(params)")
+//        debugPrint("Params \(params)")
 		return try paginate(cursor: params.cursor, limit: params.limit, sorts: try params.cursorSorts())
 
 	}
@@ -116,6 +116,18 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 			return self
 		}
 
+//        guard filterBuilders.count > 2 else{
+//            group(.or) { (or) in
+//                or.group(.and){ (and) in
+//                    and.filter(filterBuilders[0], .equal)
+//                    and.filter(filterBuilders[1], inclusive: true)
+//                }
+//                or.filter(filterBuilders[0], inclusive: false)
+//            }
+//
+//            return self
+//        }
+
 		//There could be 1...n nondistinct sorts + 1 distinct sort.
 		//We must account for tiebreaks on each nondistinct sort.
 		group(.or) { (or) in
@@ -125,16 +137,16 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 					let lastIndex = filterPartStack.count - 1
 					for i in 0...lastIndex{
 						let filter = filterPartStack[i]
-						guard i != lastIndex else{
-							and.filter(filter, inclusive: sorts.count == filterPartStack.count)
-							filterPartStack.removeLast()
+						guard i == lastIndex else{
+                            and.filter(filter, .equal)
 							continue
 						}
-						and.filter(filter, .equal)
+                        and.filter(filter, inclusive: sorts.count == filterPartStack.count)
+                        filterPartStack.removeLast()
 					}
 				}
 			}
-			or.filterForTiebreaker(nonDistinctBuilder: filterPartStack[0], distinctBuilder: filterPartStack[1])
+			or.filterForTiebreaker(nonDistinctBuilder: filterPartStack[0], distinctBuilder: filterPartStack[1], totalSorts: sorts.count)
 
 		}
 		return self
@@ -143,14 +155,14 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 	
 	
 	@discardableResult
-	public func filterForTiebreaker(nonDistinctBuilder: CursorFilterBuilder<Result>, distinctBuilder: CursorFilterBuilder<Result>) -> QueryBuilder<Database, Result>{
+    public func filterForTiebreaker(nonDistinctBuilder: CursorFilterBuilder<Result>, distinctBuilder: CursorFilterBuilder<Result>, totalSorts: Int) -> QueryBuilder<Database, Result>{
 
 		//Required value, don't need to account for nils
 		guard nonDistinctBuilder.sort.fieldIsOptional else{
 			group(.or) { (or) in
 				or.group(.and){ (and) in
 					and.filter(nonDistinctBuilder, .equal)
-					and.filter(distinctBuilder, inclusive: true)
+					and.filter(distinctBuilder, inclusive: totalSorts <= 2)
 				}
 				or.filter(nonDistinctBuilder, inclusive: false)
 			}
@@ -241,13 +253,9 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
 			let cursorParts = try sorts.map({ (sort) -> CursorPart in
 				let value: Any = sort.keyPath != nil ? model[keyPath: sort.keyPath!] : try RuntimeExtensions.get(sort.propertyName, from: model)
                 let cursorPart = CursorPart(key: sort.propertyName, value: value, direction: sort.direction)
-                print("Key: \(sort.propertyName)")
-                print("Value: \(value)")
-                print("Direction: \(sort.direction)")
                 return cursorPart
 			})
             let encodedString = try cursorParts.encodeAsJSONString(using: JSONEncoder(.secondsSince1970))
-            print("String: \(encodedString)")
 			return encodedString
 		}
 		return cursorBuilder

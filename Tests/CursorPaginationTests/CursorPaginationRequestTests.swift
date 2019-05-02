@@ -84,7 +84,7 @@ class CursorPaginationRequestTests: CursorPaginationTestCase {
 			queryItems.append(URLQueryItem(name: "limit", value: "\(limit)"))
             queryItems.append(URLQueryItem(name: "sort[]", value: "booleanField"))
             queryItems.append(URLQueryItem(name: "order[]", value: "descending"))
-			queryItems.append(URLQueryItem(name: "sort[]", value: "dateField"))
+			queryItems.append(URLQueryItem(name: "sort[]", value: "stringField"))
 			queryItems.append(URLQueryItem(name: "order[]", value: "ascending"))
 			let response = try executeRequest(method: .GET,
 											  path: "dynamicModels",

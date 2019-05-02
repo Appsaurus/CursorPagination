@@ -30,6 +30,11 @@ class CursorPaginationTestCase: FluentAppTestCase {
 	func debugPrint<M: Model>(page: CursorPage<M>) throws{
 		try page.toAnyDictionary().printPrettyJSONString()
 	}
+
+    open override func configure(databases: inout DatabasesConfig) throws{
+        try super.configure(databases: &databases)
+        databases.enableLogging(on: .sqlite)
+    }
 }
 
 

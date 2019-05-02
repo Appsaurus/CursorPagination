@@ -56,7 +56,7 @@ public struct CursorPart: Codable {
 }
 
 public extension String{
-	public func toCursorParts(isBase64Encoded: Bool = true) throws -> [CursorPart]{
+    func toCursorParts(isBase64Encoded: Bool = true) throws -> [CursorPart]{
 		guard let decodedCursor = isBase64Encoded ? fromBase64() : self else{
 			throw Abort(.badRequest, reason: "Expected cursor to be a base64 encoded string, received \(self).")
 		}

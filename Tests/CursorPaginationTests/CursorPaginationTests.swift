@@ -236,7 +236,7 @@ class CursorPaginationTests: CursorPaginationTestCase {
 
 			let req = request
 			try ExampleModel.query(on: req).all().delete(on: req).wait()
-			try seedModels(seedCount)
+			let models = try seedModels(seedCount)
 			let sortedIds: [Int] = seedCount < 1 ? [] : Array<Int>(1...seedCount)
 			var cursor: String? = nil
 			let total: Int = try ExampleModel.query(on: request).count().wait()
