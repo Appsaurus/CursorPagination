@@ -24,8 +24,8 @@
         "repositoryURL": "https://github.com/Appsaurus/CodableExtensions",
         "state": {
           "branch": null,
-          "revision": "4b8e1fafe94ac99fa53118d63a1ce8b7f075fa67",
-          "version": "1.0.0"
+          "revision": "2ccfd1323e989dee9a10d204b2959e66f1ba1e2b",
+          "version": "1.0.2"
         }
       },
       {
@@ -78,8 +78,8 @@
         "repositoryURL": "https://github.com/Appsaurus/Fakery",
         "state": {
           "branch": null,
-          "revision": "19637d073bceb2d2b7133d9e2c6f04a982fe5e8a",
-          "version": "3.4.3"
+          "revision": "8d0eafcda7dfd3152a2d86c6c458534428ed3987",
+          "version": "3.4.4"
         }
       },
       {
@@ -105,8 +105,8 @@
         "repositoryURL": "https://github.com/Appsaurus/FluentExtensions",
         "state": {
           "branch": null,
-          "revision": "176520c502e0ee612423dc1898e6b161e39eee1b",
-          "version": "0.3.0"
+          "revision": "c4d445898614b284f639c2c38bcc93695b824e69",
+          "version": "0.3.6"
         }
       },
       {
@@ -114,8 +114,8 @@
         "repositoryURL": "https://github.com/Appsaurus/FluentSeeder",
         "state": {
           "branch": null,
-          "revision": "3031b37ea1aafc811b45aa3c0b57a8b99be1bf92",
-          "version": "0.1.2"
+          "revision": "0b7ca41f85e93734cb976d04a8e2f782a38a8eef",
+          "version": "0.1.4"
         }
       },
       {
@@ -123,8 +123,8 @@
         "repositoryURL": "https://github.com/Appsaurus/FluentTestApp",
         "state": {
           "branch": null,
-          "revision": "72e7aefc051df3816f5b34645c93e6dcabb20c1f",
-          "version": "0.1.1"
+          "revision": "8b206dfd77516b519815327a56eee4476909d96f",
+          "version": "0.1.2"
         }
       },
       {
@@ -177,8 +177,8 @@
         "repositoryURL": "https://github.com/Appsaurus/RandomFactory",
         "state": {
           "branch": null,
-          "revision": "be759128472b1880ea35cd0bc98da8afeb0466be",
-          "version": "1.0.1"
+          "revision": "07bd6664d771ef536c295d18bf3a4178aa5c3163",
+          "version": "1.0.2"
         }
       },
       {

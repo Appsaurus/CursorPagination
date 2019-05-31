@@ -243,7 +243,7 @@ extension QueryBuilder where Result: CursorPaginatable, Result.Database == Datab
                 let cursorPart = CursorPart(key: sort.propertyName, value: value, direction: sort.direction)
                 return cursorPart
 			})
-            let encodedString = try cursorParts.encodeAsJSONString(using: JSONEncoder(.secondsSince1970))
+            let encodedString = try cursorParts.encodeAsJSONString(encoder: JSONEncoder(.secondsSince1970))
 			return encodedString
 		}
 		return cursorBuilder
