@@ -4,6 +4,9 @@ import PackageDescription
 
 let package = Package(
 	name: "CursorPagination",
+    platforms: [
+        .macOS(.v10_12)
+    ],
 	products: [
 		.library(name: "CursorPagination", targets: ["CursorPagination"])
 	],
