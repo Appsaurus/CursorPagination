@@ -71,26 +71,26 @@ public struct CursorPart: Codable {
         return value as? T
     }
 
-    public enum CodingKeys: CodingKey{
-        case key
-        case value
-        case direction
-    }
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(field, forKey: .key)
-        try container.encodeIfPresent(value, forKey: .value)
-        try container.encode(direction, forKey: .direction)
-    }
-    public init(from decoder: Decoder) throws{
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        field = try container.decode(.key)
-        value = try container.decodeIfPresent(.value)
-        if let directon = try container.decodeIfPresent(QuerySortDirection.self, forKey: .direction){
-            direction = directon
-        }
-
-    }
+//    public enum CodingKeys: CodingKey{
+//        case key
+//        case value
+//        case direction
+//    }
+//    public func encode(to encoder: Encoder) throws {
+//        var container = encoder.container(keyedBy: CodingKeys.self)
+//        try container.encode(field, forKey: .key)
+//        try container.encodeIfPresent(value, forKey: .value)
+//        try container.encode(direction, forKey: .direction)
+//    }
+//    public init(from decoder: Decoder) throws{
+//        let container = try decoder.container(keyedBy: CodingKeys.self)
+//        field = try container.decode(.key)
+//        value = try container.decodeIfPresent(.value)
+//        if let directon = try container.decodeIfPresent(QuerySortDirection.self, forKey: .direction){
+//            direction = directon
+//        }
+//
+//    }
 
 }
 

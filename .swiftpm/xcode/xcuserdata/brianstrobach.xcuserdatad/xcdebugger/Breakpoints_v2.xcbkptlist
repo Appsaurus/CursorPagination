@@ -7,32 +7,64 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "4AF3D9ED-409E-4C07-82AD-C3BF2B258363"
+            uuid = "155E6F68-D257-4E96-82CD-01C857BEC4C9"
             shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "Tests/CursorPaginationTests/CursorPaginationTests.swift"
+            filePath = "Sources/CursorPagination/Pagination/QueryBuilder+CursorPagination.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "223"
-            endingLineNumber = "223"
-            landmarkName = "runTest(seedCount:pageFetcher:orderTest:)"
+            startingLineNumber = "245"
+            endingLineNumber = "245"
+            landmarkName = "defaultCursorBuilder(_:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "9AD5E35D-8390-4FA7-B533-E8D2B9A78E73"
+            uuid = "EA5F22B5-EC56-4F3C-9F79-3CA574AD7B64"
             shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "Sources/CursorPagination/Pagination/CursorFilterBuilder.swift"
+            filePath = "Sources/CursorPagination/Pagination/QueryBuilder+CursorPagination.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "80"
-            endingLineNumber = "80"
-            landmarkName = "init(cursor:sorts:)"
+            startingLineNumber = "249"
+            endingLineNumber = "249"
+            landmarkName = "defaultCursorBuilder(_:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "8379C544-7E8D-446E-92FD-8351A93434B8"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Sources/CursorPagination/Pagination/QueryBuilder+CursorPagination.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "253"
+            endingLineNumber = "253"
+            landmarkName = "defaultCursorBuilder(_:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "0D66E1FC-AA82-415E-A286-6607EA33DCCA"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Sources/CursorPagination/Pagination/QueryBuilder+CursorPagination.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "257"
+            endingLineNumber = "257"
+            landmarkName = "defaultCursorBuilder(_:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

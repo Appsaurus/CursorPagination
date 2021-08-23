@@ -240,13 +240,22 @@ extension QueryBuilder where Model: CursorPaginatable {
 			let cursorParts = try sorts.map({ (sort) -> CursorPart in
                 let propertyName = sort.propertyName
                 var value: Any? = nil
-                if let keyPath = sort.keyPath, let anyProperty = model[keyPath: keyPath] as? AnyProperty {
-                    value = anyProperty.anyValue
+
+                if let keyPath = sort.keyPath  {
+                    value = model[keyPath: keyPath]
                 }
 
                 if value == nil {
                     value = try RuntimeExtensions.get("_\(propertyName)", from: model)
                 }
+
+                if let anyProperty = value as? AnyProperty {
+                    value =  anyProperty.anyValue
+                }
+
+//                if let idProperty = value as? IDProperty<Model, Int> {
+//                    value = idProperty.value
+//                }
 
                 guard let unwrapped = value else {
                     throw Abort(.badRequest)
