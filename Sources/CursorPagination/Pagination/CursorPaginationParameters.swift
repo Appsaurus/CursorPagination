@@ -9,7 +9,6 @@ import Foundation
 import Fluent
 import Vapor
 import Codability
-import Routing
 
 public struct CursorPaginationParameters: Content{
 	public let cursor: String?

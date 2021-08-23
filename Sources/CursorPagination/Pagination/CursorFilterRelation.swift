@@ -10,12 +10,12 @@ import Fluent
 enum CursorFilterRelation{
 	case and, or
 
-	func queryFilterRelation<M: CursorPaginatable>(modelType: M.Type = M.self) -> M.Database.QueryFilterRelation{
+	func queryFilterRelation<M: CursorPaginatable>(modelType: M.Type = M.self) -> DatabaseQuery.Filter.Relation{
 		switch self {
 		case .and:
-			return M.Database.queryFilterRelationAnd
+            return .and
 		case .or:
-			return M.Database.queryFilterRelationOr
+            return .or
 		}
 	}
 }
