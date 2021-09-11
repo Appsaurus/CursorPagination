@@ -15,8 +15,8 @@ import VaporTestUtils
 import FluentTestModelsSeeder
 
 extension KitchenSink: CursorPaginatable{}
-extension ChildModel: CursorPaginatable{}
-extension StudentModel: CursorPaginatable{}
+extension TestChildModel: CursorPaginatable{}
+extension TestStudentModel: CursorPaginatable{}
 
 
 class CursorPaginationTestCase: FluentTestModels.TestCase {
