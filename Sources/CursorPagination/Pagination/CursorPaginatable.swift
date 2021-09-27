@@ -7,24 +7,15 @@
 
 import FluentExtensions
 
-public protocol CursorPaginatable: Model {
-	static var defaultPageSize: Int { get }
-	static var maxPageSize: Int? { get }
+public protocol CursorPaginatable: Model, Paginatable {
 	static var defaultPageSorts: [CursorSort<Self>] { get }
 }
 
-extension CursorPaginatable{
+extension CursorPaginatable {
 	
 	public static var defaultPageSorts: [CursorSort<Self>] {
         return []
 //		return [createdAtKey?.descendingSort ?? idKey.ascendingSort]
-	}
-	public static var defaultPageSize: Int {
-		return 10
-	}
-	
-	public static var maxPageSize: Int? {
-		return nil
 	}
 }
 
