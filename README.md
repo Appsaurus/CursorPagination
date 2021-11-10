@@ -41,14 +41,14 @@ import CusorPagination
 You can simply declare the protocol adoption and inherit the default implementations.
 
 ```swift
-extension ExampleModel: CursorPaginatable{}
+extension KitchenSink: CursorPaginatable{}
 ```
 
 Or you can set some default configurations by implementing any of the following static class vars.
 
 ```swift
-extension ExampleModel: CursorPaginatable{
-	public static var defaultPageSorts: [CursorSort<ExampleModel>] {
+extension KitchenSink: CursorPaginatable{
+	public static var defaultPageSorts: [CursorSort<KitchenSink>] {
 		return [idKey.descendingSort]
 	}
 	public static var defaultPageSize: Int {
@@ -66,8 +66,8 @@ extension ExampleModel: CursorPaginatable{
 Setup routes to return a `Future<CursorPage<YourModel>>`. When you run your query, simply call `paginate(request:  sorts: )` on your class or on a QueryBuilder.
 
 ```swift
-router.get("modelsByDate") { request -> Future<CursorPage<ExampleModel>> in
-	return try ExampleModel.paginate(request: request,
+router.get("modelsByDate") { request -> Future<CursorPage<KitchenSink>> in
+	return try KitchenSink.paginate(database: Database,
 					 sorts: .descending(\.dateField))
 }
 ```
@@ -196,8 +196,8 @@ Sorting on multiple properties works as well.
 > In order to break ties, the last sort must be on a unique property, otherwise a sort on a default unique property (Fluent id) will be applied.
 
 ```swift
-router.get("modelsByBooleanAndString") { request -> Future<CursorPage<ExampleModel>> in
-	return try ExampleModel.paginate(request: request,
+router.get("modelsByBooleanAndString") { request -> Future<CursorPage<KitchenSink>> in
+	return try KitchenSink.paginate(database: Database,
 					 sorts: .descending(\.booleanField), .ascending(\.stringField))
 }
 ```
@@ -213,8 +213,8 @@ You can allow the client to dynamically dictate how the results are sorted via q
 Setup a dynamically sortable request handler like so:
 
 ```swift
-router.get("dynamicModels") { request -> Future<CursorPage<ExampleModel>> in
-	return try ExampleModel.paginate(dynamicRequest: request)
+router.get("dynamicModels") { request -> Future<CursorPage<KitchenSink>> in
+	return try KitchenSink.paginate(dynamicdatabase: Database)
 }
 ```
 Then in your request, each sorts and orders via the `sort[]` and `order[]` parameters respectively (order matters):

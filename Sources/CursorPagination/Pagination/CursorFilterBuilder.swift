@@ -27,7 +27,7 @@ public struct CursorFilterBuilder<M: CursorPaginatable>{
 			return .lessThanOrEqual
 		case (false, .descending):
 			return .lessThan
-		}
+        }
 	}
 }
 
@@ -45,20 +45,20 @@ public enum CursorFilterMethod: String, ExpressibleByStringLiteral, Codable{
 		self = CursorFilterMethod.init(rawValue: value)!
 	}
 
-	public func queryFilterMethod<M: CursorPaginatable>(modelType: M.Type = M.self) -> M.Database.QueryFilterMethod{
+    public func queryFilterMethod<M: CursorPaginatable>(modelType: M.Type = M.self) -> DatabaseQuery.Filter.Method{
 		switch self{
 		case .equal:
-			return M.Database.queryFilterMethodEqual
+            return .equal
 		case .notEqual:
-			return M.Database.queryFilterMethodNotEqual
+            return .notEqual
 		case .greaterThan:
-			return M.Database.queryFilterMethodGreaterThan
+            return .greaterThan
 		case .greaterThanOrEqual:
-			return M.Database.queryFilterMethodGreaterThanOrEqual
+            return .greaterThanOrEqual
 		case .lessThan:
-			return M.Database.queryFilterMethodLessThan
+            return .lessThan
 		case .lessThanOrEqual:
-			return M.Database.queryFilterMethodLessThanOrEqual
+            return .lessThanOrEqual
 		}
 	}
 }
@@ -77,7 +77,7 @@ public struct CursorQueryBuilder<M: CursorPaginatable>{
 		
 		for (index, part) in orderedCursorParts.enumerated(){
 			filterBuilders.append(CursorFilterBuilder<M>(sort: sorts[index], cursorPart: part))
-			guard part.field == sorts[index].propertyName else {
+            guard part.field == sorts[index].propertyName else {
 				throw Abort(.badRequest, reason: "Cursor part does not match sort.")
 			}
 		}

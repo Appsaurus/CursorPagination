@@ -1,25 +1,44 @@
-// swift-tools-version:5.0
+// swift-tools-version:5.3
+// The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
 let package = Package(
-	name: "CursorPagination",
+    name: "CursorPagination",
     platforms: [
-        .macOS(.v10_12)
+        .macOS(.v10_15),
+        .iOS(.v13),
+        .tvOS(.v13),
+        .watchOS(.v6)
     ],
-	products: [
-		.library(name: "CursorPagination", targets: ["CursorPagination"])
-	],
-	dependencies: [
-		.package(url: "https://github.com/vapor/vapor.git", from: "3.0.0"),
-		.package(url: "https://github.com/vapor/fluent.git", from:"3.0.0"),
-		.package(url: "https://github.com/Appsaurus/FluentTestApp", from: "0.1.0"),
-		.package(url: "https://github.com/Appsaurus/CodableExtensions", from: "1.0.0"),
-		.package(url: "https://github.com/Appsaurus/RuntimeExtensions", from: "0.1.0")
+    products: [
+        .library(name: "CursorPagination", targets: ["CursorPagination"])
+    ],
+    dependencies: [
+        .package(url: "https://github.com/vapor/vapor.git", .upToNextMajor(from: "4.0.0")),
+        .package(url: "https://github.com/vapor/fluent.git", .upToNextMajor(from: "4.0.0")),
+        .package(url: "https://github.com/Appsaurus/FluentExtensions", .branch("vapor-4")),
+        .package(url: "https://github.com/Appsaurus/FluentSeeder", .branch("vapor-4")),
+        .package(url: "https://github.com/Appsaurus/CodableExtensions",  .upToNextMajor(from: "1.0.0")),
+        .package(url: "https://github.com/Appsaurus/RuntimeExtensions",  .upToNextMajor(from: "0.1.0")),
+        .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", .upToNextMajor(from:"4.0.0")),
+    ],
+    targets: [
+        .target(
+            name: "CursorPagination",
+            dependencies: [
+                .product(name: "Vapor", package: "vapor"),
+                .product(name: "Fluent", package: "fluent"),
+                .product(name: "CodableExtensions", package: "CodableExtensions"),
+                .product(name: "RuntimeExtensions", package: "RuntimeExtensions"),
+                .product(name: "FluentExtensions", package: "FluentExtensions")
 
-	],
-	targets: [
-		.target(name: "CursorPagination", dependencies: ["Vapor", "Fluent", "CodableExtensions", "RuntimeExtensions"]),
-        .testTarget(name: "CursorPaginationTests", dependencies: ["CursorPagination", "FluentTestApp"]),
-	]
+            ]),
+        .testTarget(name: "CursorPaginationTests", dependencies: [
+            .target(name: "CursorPagination"),
+            .product(name: "FluentTestModelsSeeder", package: "FluentSeeder"),
+            .product(name: "FluentSQLiteDriver", package: "fluent-sqlite-driver")
+        ])
+    ]
 )
+

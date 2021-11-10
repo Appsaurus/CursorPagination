@@ -7,63 +7,46 @@
 
 import Foundation
 import XCTest
-import FluentTestApp
+import FluentExtensions
 import Vapor
 import Fluent
-import HTTP
 import CodableExtensions
 import CursorPagination
 import FluentTestModels
 
 class CursorPaginationRequestTests: CursorPaginationTestCase {
 
-	override func setUp() {
-		super.setUp()
-		loggingLevel = .requests
-	}
-	//MARK: Linux Testing
-	static var allTests = [
-		("testLinuxTestSuiteIncludesAllTests", testLinuxTestSuiteIncludesAllTests),
-		("testPaginationRequest", testPaginationRequest),
-		("testDynamicPaginationRequest", testDynamicPaginationRequest)
-	]
-	
-	func testLinuxTestSuiteIncludesAllTests(){
-		assertLinuxTestCoverage(tests: type(of: self).allTests)
-	}
-	
-	override func configure(router: Router) throws {
-		try super.configure(router: router)
-		router.get("models") { request -> Future<CursorPage<ExampleModel>> in
-			return try ExampleModel.paginate(request: request,
-											 sorts: .descending(\.dateField), .ascending(\.stringField))
+    override func addRoutes(to router: Routes) throws {
+        try super.addRoutes(to: router)
+		router.get("models") { request -> Future<CursorPage<KitchenSink>> in
+			return try KitchenSink.paginate(request: request,
+											 sorts: .descending(\.$dateField), .ascending(\.$stringField))
 		}
 
-		router.get("dynamicModels") { request -> Future<CursorPage<ExampleModel>> in
-			return try ExampleModel.paginate(dynamicRequest: request)
+		router.get("dynamicModels") { request -> Future<CursorPage<KitchenSink>> in
+			return try KitchenSink.paginate(request: request)
 		}
 	}
 	
 	func testPaginationRequest() throws{
 		try seedModels(40)
-		let existingModels = try ExampleModel.query(on: request).all().wait()
+        let existingModels = try KitchenSink.query(on: app.db).all().wait()
 		let expectedTotalCount = existingModels.count
 		let limit: Int = 5
 		var cursor: String? = nil
-		var models: [ExampleModel] = []
+		var models: [KitchenSink] = []
 		repeat{
 			var queryItems: [URLQueryItem] = []
 			if let cursor = cursor{
 				queryItems.append(URLQueryItem(name: "cursor", value: cursor))
 			}
 			queryItems.append(URLQueryItem(name: "limit", value: "\(limit)"))
-			let response = try executeRequest(method: .GET,
-											  path: "models",
-											  queryItems: queryItems)
-			let page: CursorPage<ExampleModel> = try response.content.decode(CursorPage<ExampleModel>.self).wait()
-			models.append(contentsOf: page.data)
-			XCTAssert(page.data.count <= limit)
-			cursor = page.nextPageCursor
+            try app.test(.GET, "models", queryItems: queryItems, afterResponse: { response in
+                let page: CursorPage<KitchenSink> = try response.content.decode(CursorPage<KitchenSink>.self)
+                models.append(contentsOf: page.data)
+                XCTAssert(page.data.count <= limit)
+                cursor = page.nextPageCursor
+            })
 		} while cursor != nil
 		
 		XCTAssertEqual(models.count, expectedTotalCount)
@@ -71,11 +54,11 @@ class CursorPaginationRequestTests: CursorPaginationTestCase {
 
 	func testDynamicPaginationRequest() throws{
 		try seedModels(40)
-		let existingModels = try ExampleModel.query(on: request).all().wait()
+        let existingModels = try KitchenSink.query(on: app.db).all().wait()
 		let expectedTotalCount = existingModels.count
 		let limit: Int = 5
 		var cursor: String? = nil
-		var models: [ExampleModel] = []
+		var models: [KitchenSink] = []
         repeat{
 			var queryItems: [URLQueryItem] = []
 			if let cursor = cursor{
@@ -86,16 +69,45 @@ class CursorPaginationRequestTests: CursorPaginationTestCase {
             queryItems.append(URLQueryItem(name: "order[]", value: "descending"))
 			queryItems.append(URLQueryItem(name: "sort[]", value: "stringField"))
 			queryItems.append(URLQueryItem(name: "order[]", value: "ascending"))
-			let response = try executeRequest(method: .GET,
-											  path: "dynamicModels",
-											  queryItems: queryItems)
-			let page: CursorPage<ExampleModel> = try response.content.decode(CursorPage<ExampleModel>.self).wait()
-//            try debugPrint(page: page)
-			models.append(contentsOf: page.data)
-			XCTAssert(page.data.count <= limit)
-			cursor = page.nextPageCursor
+
+            try app.test(.GET, "dynamicModels", queryItems: queryItems, afterResponse: { response in
+                let page: CursorPage<KitchenSink> = try response.content.decode(CursorPage<KitchenSink>.self)
+                //            try debugPrint(page: page)
+                models.append(contentsOf: page.data)
+                XCTAssert(page.data.count <= limit)
+                cursor = page.nextPageCursor
+            })
+
+
+
         } while cursor != nil
 
 		XCTAssertEqual(models.count, expectedTotalCount)
 	}
+}
+
+
+import XCTVapor
+
+public extension XCTApplicationTester {
+    @discardableResult
+    func test(_ method: NIOHTTP1.HTTPMethod,
+                     _ path: String,
+                     queryItems: [URLQueryItem],
+                     headers: NIOHTTP1.HTTPHeaders = [:],
+                     body: NIO.ByteBuffer? = nil,
+                     file: StaticString = #file,
+                     line: UInt = #line,
+                     beforeRequest: (inout XCTVapor.XCTHTTPRequest) throws -> () = { _ in },
+                     afterResponse: (XCTVapor.XCTHTTPResponse) throws -> () = { _ in }) throws -> XCTVapor.XCTApplicationTester {
+
+        var urlComponents = URLComponents()
+        urlComponents.path = path
+        urlComponents.queryItems = queryItems
+
+        guard let url = urlComponents.url?.absoluteString else {
+            throw Abort(.badRequest)
+        }
+        return try test(method, url, headers: headers, body: body, beforeRequest: beforeRequest, afterResponse: afterResponse)
+    }
 }
