@@ -1,6 +1,6 @@
 //
 //  CursorPaginatable.swift
-//  Servasaurus
+//  Appsaurus
 //
 //  Created by Brian Strobach on 5/3/18.
 //

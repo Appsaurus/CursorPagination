@@ -1,6 +1,6 @@
 //
 //  Paginator.swift
-//  Servasaurus
+//  Appsaurus
 //
 //  Created by Brian Strobach on 12/27/17.
 //

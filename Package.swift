@@ -1,4 +1,4 @@
-// swift-tools-version:5.3
+// swift-tools-version:5.4
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -17,8 +17,8 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/vapor/vapor.git", .upToNextMajor(from: "4.0.0")),
         .package(url: "https://github.com/vapor/fluent.git", .upToNextMajor(from: "4.0.0")),
-        .package(url: "https://github.com/Appsaurus/FluentExtensions", .branch("vapor-4")),
-        .package(url: "https://github.com/Appsaurus/FluentSeeder", .branch("vapor-4")),
+        .package(url: "https://github.com/Appsaurus/FluentExtensions", .upToNextMajor(from: "1.0.0")),
+        .package(url: "https://github.com/Appsaurus/FluentSeeder", .upToNextMajor(from: "1.0.0")),
         .package(url: "https://github.com/Appsaurus/CodableExtensions",  .upToNextMajor(from: "1.0.0")),
         .package(url: "https://github.com/Appsaurus/RuntimeExtensions",  .upToNextMajor(from: "0.1.0")),
         .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", .upToNextMajor(from:"4.0.0")),
