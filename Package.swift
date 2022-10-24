@@ -30,7 +30,7 @@ let package = Package(
                 .product(name: "Fluent", package: "fluent"),
                 .product(name: "CodableExtensions", package: "CodableExtensions"),
                 .product(name: "FluentExtensions", package: "FluentExtensions")
-
+                
             ]),
         .testTarget(name: "CursorPaginationTests", dependencies: [
             .target(name: "CursorPagination"),
