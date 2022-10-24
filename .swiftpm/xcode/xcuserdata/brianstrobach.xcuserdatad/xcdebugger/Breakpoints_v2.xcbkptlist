@@ -34,6 +34,38 @@
             endingLineNumber = "258"
             landmarkName = "defaultCursorBuilder(_:)"
             landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "EA5F22B5-EC56-4F3C-9F79-3CA574AD7B64 - ea8715f728d6252c"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 (CursorPagination.CursorSort&lt;&#x3c4;_0_0&gt;) throws -&gt; CursorPagination.CursorPart in closure #1 (&#x3c4;_0_0) throws -&gt; Swift.String in FluentKit.QueryBuilder&lt; where &#x3c4;_0_0: CursorPagination.CursorPaginatable&gt;.defaultCursorBuilder(Swift.Array&lt;CursorPagination.CursorSort&lt;&#x3c4;_0_0&gt;&gt;) throws -&gt; (&#x3c4;_0_0) throws -&gt; Swift.String"
+                  moduleName = "CursorPaginationTests"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/brianstrobach/Local/Development/Swift/Packages/Vapor/CursorPagination/Sources/CursorPagination/Pagination/QueryBuilder+CursorPagination.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "260"
+                  endingLineNumber = "260"
+                  offsetFromSymbolStart = "1132">
+               </Location>
+               <Location
+                  uuid = "EA5F22B5-EC56-4F3C-9F79-3CA574AD7B64 - ea8715f728d6252c"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 (CursorPagination.CursorSort&lt;&#x3c4;_0_0&gt;) throws -&gt; CursorPagination.CursorPart in closure #1 (&#x3c4;_0_0) throws -&gt; Swift.String in FluentKit.QueryBuilder&lt; where &#x3c4;_0_0: CursorPagination.CursorPaginatable&gt;.defaultCursorBuilder(Swift.Array&lt;CursorPagination.CursorSort&lt;&#x3c4;_0_0&gt;&gt;) throws -&gt; (&#x3c4;_0_0) throws -&gt; Swift.String"
+                  moduleName = "CursorPaginationTests"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/brianstrobach/Local/Development/Swift/Packages/Vapor/CursorPagination/Sources/CursorPagination/Pagination/QueryBuilder+CursorPagination.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "260"
+                  endingLineNumber = "260"
+                  offsetFromSymbolStart = "1500">
+               </Location>
+            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -65,6 +97,70 @@
             startingLineNumber = "266"
             endingLineNumber = "266"
             landmarkName = "defaultCursorBuilder(_:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "C328554D-CA54-48BD-9980-5517A7650D2D"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../../../../../../Library/Developer/Xcode/DerivedData/CursorPagination-czkzjxyvzyuxxsbkbnrpqshcleln/SourcePackages/checkouts/RandomFactory/Sources/Shared/RandomInitializable.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "230"
+            endingLineNumber = "230"
+            landmarkName = "randomValue(ofType:for:contentType:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "D692792A-A404-4D80-AE7C-47BC3B87FDCE"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../../../../../../Library/Developer/Xcode/DerivedData/CursorPagination-czkzjxyvzyuxxsbkbnrpqshcleln/SourcePackages/checkouts/RandomFactory/Sources/Shared/RandomInitializable.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "84"
+            endingLineNumber = "84"
+            landmarkName = "randomDictionary(decodableTo:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "BBFD3033-BDF4-4E03-9599-D047C61598B9"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../../../../../../Library/Developer/Xcode/DerivedData/CursorPagination-czkzjxyvzyuxxsbkbnrpqshcleln/SourcePackages/checkouts/RandomFactory/Sources/Shared/RandomInitializable.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "88"
+            endingLineNumber = "88"
+            landmarkName = "randomDictionary(decodableTo:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "F09E118F-A07A-4934-8F63-338AC9170545"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../../../../../../Library/Developer/Xcode/DerivedData/CursorPagination-czkzjxyvzyuxxsbkbnrpqshcleln/SourcePackages/checkouts/RandomFactory/Sources/Shared/RandomInitializable.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "110"
+            endingLineNumber = "110"
+            landmarkName = "randomValue(for:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
