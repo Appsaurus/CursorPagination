@@ -11,7 +11,7 @@ import FluentTestModels
 import Vapor
 import Fluent
 import CursorPagination
-import VaporTestUtils
+import XCTVaporExtensions
 import FluentTestModelsSeeder
 
 extension KitchenSink: CursorPaginatable{}
@@ -25,13 +25,13 @@ class CursorPaginationTestCase: FluentTestModels.TestCase {
         databases.use(.sqlite(.memory, connectionPoolTimeout: .minutes(2)), as: .sqlite)
     }
     @discardableResult
-	func seedModels(_ count: Int = 30) throws -> [KitchenSink] {
+	func seedModels(_ count: Int = 30) async throws -> [KitchenSink] {
         let factory = ModelFactory.fluentFactory()
         factory.config.register(enumType: TestIntEnum.self)
         factory.config.register(enumType: TestStringEnum.self)
         factory.config.register(enumType: TestRawStringEnum.self)
         factory.config.register(enumType: TestRawIntEnum.self)
-        return try KitchenSink.createBatchSync(size: count, factory: factory, on: app.db)
+        return try await KitchenSink.createBatch(size: count, factory: factory, on: app.db)
 	}
 
 	func debugPrint<M: Model>(page: CursorPage<M>) throws{
